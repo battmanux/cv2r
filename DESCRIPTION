@@ -1,0 +1,15 @@
+Package: cv2r
+Title: Use OpenCV in RStudio 
+Version: 0.0.0.9000
+Authors@R: person("Emmanuel", "BATT", email = "battmanu@free.fr", role = c("aut", "cre"))
+Description: All it does is to import cv2 from python through reticulate and overload imshow so that the output can be visualised in the Viewer pane.
+Depends: R (>= 3.4.3)
+License: MIT
+Encoding: UTF-8
+LazyData: true
+Imports:
+    r2d3 (>= 0.2.2),
+    reticulate (>= 1.10)
+Suggests:
+    shiny(>= 1.1.0)
+RoxygenNote: 6.1.0
