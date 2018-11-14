@@ -46,8 +46,12 @@ imread <- function(filename, flags=-1L) {
 #' 
 #' # you can also do plot(my_image)
 #' 
-imshow <- function(img, max_w = 100, max_h = 100, keep_shape = T) {
+imshow <- function(img, max_w = 500, max_h = 500, keep_shape = T) {
 
+    # Clean input types
+    
+    if ( ! "numpy.ndarray" %in% class(img) )
+        img <- reticulate::np_array(data = img, dtype = "uint8")
     
     if ( keep_shape ) {
         l_shape <- unlist(reticulate::py_to_r(img$shape))[1:2]
@@ -56,11 +60,8 @@ imshow <- function(img, max_w = 100, max_h = 100, keep_shape = T) {
         max_h <- floor(l_shape / l_ratio)[2]
     }
     
-    # Clean input types
     max_w <- as.integer(max_w)
     max_h <- as.integer(max_h)
-    if ( ! "numpy.ndarray" %in% class(img) )
-        img <- reticulate::np_array(data = img, dtype = "uint8")
     
     l_out <- cv2$resize(src=img, dsize=reticulate::tuple(max_h,max_w))
     l_b64img <- base64enc::base64encode(reticulate::py_to_r(cv2$imencode(img=l_out, ext=".png"))[[2]])
@@ -73,7 +74,7 @@ imshow <- function(img, max_w = 100, max_h = 100, keep_shape = T) {
 }
 
 
-#' plot an image from OpenCV 
+#' print an image from OpenCV 
 #'
 #' @param img image to plot
 #'
@@ -83,8 +84,25 @@ imshow <- function(img, max_w = 100, max_h = 100, keep_shape = T) {
 #' @examples
 #' 
 #' my_image <- imread("https://www.google.fr/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png")
+#' print(my_image) # or just my_image
+#' 
+print.numpy.ndarray <- function(img) {
+    invisible(print(imshow(img)))
+}
+
+
+#' plot an image from OpenCV 
+#'
+#' @param img image to plot
+#'
+#' @return Show image in Viwer pane
+#'
+#' @examples
+#' 
+#' my_image <- imread("https://www.google.fr/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png")
 #' plot(my_image)
 #' 
+#' @export
 plot.numpy.ndarray <- function(img) {
     imshow(img)
 }
