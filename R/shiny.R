@@ -1,6 +1,39 @@
-cv2Output <- r2d3::d3Output
+#' Title
+#'
+#' @param outputId 
+#' @param width 
+#' @param height 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' 
+cv2Output <- function (outputId, width = "100%", height = "400px") 
+{
+  htmlwidgets::shinyWidgetOutput(outputId, "r2d3", width, 
+                                 height)
+}
+  
 
-renderCv2 <- r2d3::renderD3
+#' Title
+#'
+#' @param expr 
+#' @param env 
+#' @param quoted 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+renderCv2 <- function (expr, env = parent.frame(), quoted = FALSE) 
+{
+  if (!quoted) {
+    expr <- substitute(expr)
+  }
+  htmlwidgets::shinyRenderWidget(expr, r2d3::d3Output, env, quoted = TRUE)
+}
+
 
 #' Capture WebCam
 #'

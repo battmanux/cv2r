@@ -4,10 +4,10 @@
 \alias{plot.numpy.ndarray}
 \title{plot an image from OpenCV}
 \usage{
-\method{plot}{numpy.ndarray}(img)
+\method{plot}{numpy.ndarray}(mat)
 }
 \arguments{
-\item{img}{image to plot}
+\item{mat}{image to plot}
 }
 \value{
 Show image in Viwer pane

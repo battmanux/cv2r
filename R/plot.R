@@ -32,7 +32,8 @@ imread <- function(filename, flags=-1L) {
 
 #' Overload of OpenCV imshow to make it compatible with RStudio server and Shiny
 #'
-#' @param img image data structure to show
+#' @param winname Image identifyer
+#' @param mat image data structure to show
 #' @param max_w resize with maximum number of pixel width
 #' @param max_h resize with maximum number of pixel height
 #' @param keep_shape keep aspect ratio when resizing (default TRUE)
@@ -46,15 +47,17 @@ imread <- function(filename, flags=-1L) {
 #' 
 #' # you can also do plot(my_image)
 #' 
-imshow <- function(img, max_w = 500, max_h = 500, keep_shape = T) {
+imshow <- function(winname="default", mat, max_w = 500, max_h = 500, keep_shape = T) {
 
     # Clean input types
     
-    if ( ! "numpy.ndarray" %in% class(img) )
-        img <- reticulate::np_array(data = img, dtype = "uint8")
+    if ( ! "numpy.ndarray" %in% class(mat) )
+        l_mat <- reticulate::np_array(data = mat, dtype = "uint8")
+    else
+        l_mat <- mat
     
     if ( keep_shape ) {
-        l_shape <- unlist(reticulate::py_to_r(img$shape))[1:2]
+        l_shape <- unlist(reticulate::py_to_r(l_mat$shape))[1:2]
         l_ratio <- max(l_shape[1:2] / c(max_w, max_h))
         max_w <- floor(l_shape / l_ratio)[1]
         max_h <- floor(l_shape / l_ratio)[2]
@@ -63,20 +66,20 @@ imshow <- function(img, max_w = 500, max_h = 500, keep_shape = T) {
     max_w <- as.integer(max_w)
     max_h <- as.integer(max_h)
     
-    l_out <- cv2$resize(src=img, dsize=reticulate::tuple(max_h,max_w))
+    l_out <- cv2$resize(src=mat, dsize=reticulate::tuple(max_h,max_w))
     l_b64img <- base64enc::base64encode(reticulate::py_to_r(cv2$imencode(img=l_out, ext=".png"))[[2]])
     
     l_data <- list(
-        list(src=paste0("data:image/png;base64,",l_b64img), id=0 )
+        list(id=winname, type="data:image/png;base64", data=l_b64img) 
     )
     
-    r2d3::r2d3(data=l_data, script = "~/test/d3opencv.js")
+    r2d3::r2d3(data=l_data, script = system.file("simple_png_view.js", package = "cv2r"))
 }
 
 
 #' print an image from OpenCV 
 #'
-#' @param img image to plot
+#' @param mat image to plot
 #'
 #' @return Show image in Viwer pane
 #' @export
@@ -86,14 +89,23 @@ imshow <- function(img, max_w = 500, max_h = 500, keep_shape = T) {
 #' my_image <- imread("https://www.google.fr/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png")
 #' print(my_image) # or just my_image
 #' 
-print.numpy.ndarray <- function(img) {
-    invisible(print(imshow(img)))
+print.numpy.ndarray <- function(mat) {
+    cat("Pytohon ndarray: shape=")
+    print(mat$shape)
+    if ( length(mat$shape) == 3 && mat$shape[2] <= 4) {
+        print(imshow(mat = mat))
+        invisible(print(imshow(mat = mat)))
+    }
+        
+    else
+        NextMethod()
+    
 }
 
 
 #' plot an image from OpenCV 
 #'
-#' @param img image to plot
+#' @param mat image to plot
 #'
 #' @return Show image in Viwer pane
 #'
@@ -103,6 +115,9 @@ print.numpy.ndarray <- function(img) {
 #' plot(my_image)
 #' 
 #' @export
-plot.numpy.ndarray <- function(img) {
-    imshow(img)
+plot.numpy.ndarray <- function(mat) {
+    if ( length(mat$shape) == 3 && mat$shape[2] <= 4)
+        invisible(print(imshow(mat = mat)))
+    else
+        NextMethod()
 }

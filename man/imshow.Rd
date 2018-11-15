@@ -4,10 +4,13 @@
 \alias{imshow}
 \title{Overload of OpenCV imshow to make it compatible with RStudio server and Shiny}
 \usage{
-imshow(img, max_w = 500, max_h = 500, keep_shape = T)
+imshow(winname = "default", mat, max_w = 500, max_h = 500,
+  keep_shape = T)
 }
 \arguments{
-\item{img}{image data structure to show}
+\item{winname}{Image identifyer}
+
+\item{mat}{image data structure to show}
 
 \item{max_w}{resize with maximum number of pixel width}
 
