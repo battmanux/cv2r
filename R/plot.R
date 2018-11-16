@@ -13,8 +13,8 @@
 #' @export
 #'
 #' @examples
-#' my_image <- imread("https://www.google.fr/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png")
-#' imshow(my_image)
+#' my_image <- imread("https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png")
+#' imshow(mat= my_image)
 #' 
 #' # you can also do plot(my_image)
 #' 
@@ -27,27 +27,28 @@ imread <- function(filename, flags=-1L) {
         l_tmpfile <- filename
     }
         
-    cv2$imread(l_tmpfile, flags)
+    cv2r$imread(l_tmpfile, flags)
 }
 
 #' Overload of OpenCV imshow to make it compatible with RStudio server and Shiny
 #'
 #' @param winname Image identifyer
 #' @param mat image data structure to show
-#' @param max_w resize with maximum number of pixel width
-#' @param max_h resize with maximum number of pixel height
-#' @param keep_shape keep aspect ratio when resizing (default TRUE)
+#' @param scale Scale factor on client size (does not affect bandwidth)
+#' @param render_max_w make sure we do not send too much pixels over http  
+#' @param render_max_h make sure we do not send too much pixels over http 
+#' @param keep_shape keep aspect ratio when resizing according to render_max_w|h (default TRUE)
 #'
 #' @return r2d3 object
 #' @export
 #'
 #' @examples
-#' my_image <- imread("https://www.google.fr/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png")
-#' imshow(my_image)
+#' my_image <- imread("https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png")
+#' imshow(mat=my_image)
 #' 
 #' # you can also do plot(my_image)
 #' 
-imshow <- function(winname="default", mat, max_w = 500, max_h = 500, keep_shape = T) {
+imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1000, keep_shape = T, scale = 1.0) {
 
     # Clean input types
     
@@ -58,19 +59,23 @@ imshow <- function(winname="default", mat, max_w = 500, max_h = 500, keep_shape 
     
     if ( keep_shape ) {
         l_shape <- unlist(reticulate::py_to_r(l_mat$shape))[1:2]
-        l_ratio <- max(l_shape[1:2] / c(max_w, max_h))
-        max_w <- floor(l_shape / l_ratio)[1]
-        max_h <- floor(l_shape / l_ratio)[2]
+        l_ratio <- max(l_shape[1:2] / c(render_max_h, render_max_w))
+        render_max_h <- floor(l_shape / l_ratio)[1]
+        render_max_w <- floor(l_shape / l_ratio)[2]
     }
     
-    max_w <- as.integer(max_w)
-    max_h <- as.integer(max_h)
+    render_max_w <- as.integer(render_max_w)
+    render_max_h <- as.integer(render_max_h)
     
-    l_out <- cv2$resize(src=mat, dsize=reticulate::tuple(max_h,max_w))
-    l_b64img <- base64enc::base64encode(reticulate::py_to_r(cv2$imencode(img=l_out, ext=".png"))[[2]])
+    if ( render_max_h < l_shape[[1]] || render_max_w < l_shape[[2]] ) {
+        mat <- cv2r$resize(src=mat, dsize=reticulate::tuple(render_max_w,render_max_h))
+    }
+    
+    l_b64img <- base64enc::base64encode(
+        reticulate::py_to_r(cv2r$imencode(img=mat, ext=".png"))[[2]])
     
     l_data <- list(
-        list(id=winname, type="data:image/png;base64", data=l_b64img) 
+        list(id=winname, scale = scale, type="data:image/png;base64", data=l_b64img) 
     )
     
     r2d3::r2d3(data=l_data, script = system.file("simple_png_view.js", package = "cv2r"))
@@ -79,25 +84,29 @@ imshow <- function(winname="default", mat, max_w = 500, max_h = 500, keep_shape 
 
 #' print an image from OpenCV 
 #'
-#' @param mat image to plot
+#' @param x image to plot
+#' @param ... ignored
 #'
 #' @return Show image in Viwer pane
 #' @export
 #'
 #' @examples
 #' 
-#' my_image <- imread("https://www.google.fr/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png")
+#' my_image <- imread("https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png")
 #' print(my_image) # or just my_image
 #' 
-print.numpy.ndarray <- function(mat) {
-    cat("Pytohon ndarray: shape=")
+print.numpy.ndarray <- function(x, ...) {
+    mat = x
+    cat("Python ndarray: shape=")
     print(mat$shape)
-    if ( length(mat$shape) == 3 && mat$shape[2] <= 4) {
+    
+    if ( length(mat$shape) == 3 && reticulate::py_to_r(mat$shape)[[3]] %in% c(1,3,4) ) {
         print(imshow(mat = mat))
         invisible(print(imshow(mat = mat)))
-    }
-        
-    else
+    } else if ( length(mat$shape) == 2 ) {
+        print(imshow(mat = mat))
+        NextMethod()
+    }else
         NextMethod()
     
 }
@@ -111,12 +120,12 @@ print.numpy.ndarray <- function(mat) {
 #'
 #' @examples
 #' 
-#' my_image <- imread("https://www.google.fr/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png")
+#' my_image <- imread("https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png")
 #' plot(my_image)
 #' 
 #' @export
 plot.numpy.ndarray <- function(mat) {
-    if ( length(mat$shape) == 3 && mat$shape[2] <= 4)
+    if ( length(mat$shape) == 2 || ( length(mat$shape) == 3 &&reticulate::py_to_r(mat$shape)[[3]] %in% c(1,3,4) ) )
         invisible(print(imshow(mat = mat)))
     else
         NextMethod()

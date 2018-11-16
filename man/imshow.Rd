@@ -4,19 +4,21 @@
 \alias{imshow}
 \title{Overload of OpenCV imshow to make it compatible with RStudio server and Shiny}
 \usage{
-imshow(winname = "default", mat, max_w = 500, max_h = 500,
-  keep_shape = T)
+imshow(winname = "default", mat, render_max_w = 1000,
+  render_max_h = 1000, keep_shape = T, scale = 1)
 }
 \arguments{
 \item{winname}{Image identifyer}
 
 \item{mat}{image data structure to show}
 
-\item{max_w}{resize with maximum number of pixel width}
+\item{render_max_w}{make sure we do not send too much pixels over http}
 
-\item{max_h}{resize with maximum number of pixel height}
+\item{render_max_h}{make sure we do not send too much pixels over http}
 
-\item{keep_shape}{keep aspect ratio when resizing (default TRUE)}
+\item{keep_shape}{keep aspect ratio when resizing according to render_max_w|h (default TRUE)}
+
+\item{scale}{Scale factor on client size (does not affect bandwidth)}
 }
 \value{
 r2d3 object
@@ -25,8 +27,8 @@ r2d3 object
 Overload of OpenCV imshow to make it compatible with RStudio server and Shiny
 }
 \examples{
-my_image <- imread("https://www.google.fr/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png")
-imshow(my_image)
+my_image <- imread("https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png")
+imshow(mat=my_image)
 
 # you can also do plot(my_image)
 

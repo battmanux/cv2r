@@ -1,24 +1,23 @@
+#' Fix reticulate injecter so that functions are supported
+#' 
+#' See [https://github.com/rstudio/reticulate/pull/384]
+#'
+#' @param envir envir to be exposed to python
+#'
 py_inject_r <- function (envir) 
 {
     reticulate::py_run_string("class R(object): pass")
     main <- reticulate::import_main(convert = F)
     R <- main$R
     if (is.null(envir)) {
-        .knitEnv <- yoink("knitr", ".knitEnv")
+        .knitEnv <- reticulate:::yoink("knitr", ".knitEnv")
         envir <- .knitEnv$knit_global
     }
     getter <- function(self, code) {
         
-        str_code <- reticulate:::as_r_value(code)
-        r_variable <- eval(parse(text = str_code), envir = envir)
+        object <- eval(parse(text = reticulate:::as_r_value(code)), envir = envir)
+        reticulate:::r_to_py(object, convert = is.function(object))
         
-        if ( is.function(r_variable) ) {
-            main_f <- reticulate::import_main(convert = T) # convert required for functions
-            main_f[[paste0("_r_",str_code)]]  <-  r_variable
-            return(reticulate::py_eval(paste0("_r_",str_code)))
-        }
-        
-        return(r_to_py(r_variable))
     }
     setter <- function(self, name, value) {
         envir[[reticulate:::as_r_value(name)]] <<- reticulate:::as_r_value(value)

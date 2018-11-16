@@ -1,2 +1,12 @@
+^Meta$
+^doc$
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^.gitignore$
+Meta
+cv2r.Rproj
+.Rhistory
+.gitignore
+..Rcheck
+.Rproj.user
+.git
