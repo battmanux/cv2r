@@ -11,7 +11,6 @@
 #'
 #' @examples
 #' 
-#' \donttest{
 #'library(shiny)
 #'library(cv2r)
 #'
@@ -31,8 +30,8 @@
 #'    imshow("id", input$video[100:200,150:250]) })
 #'}
 #'
-#'shinyApp(ui, server)
-#' }
+#' #shinyApp(ui, server)
+#' 
 cv2Output <- function (outputId, width = "100%", height = "400px") 
 {
   htmlwidgets::shinyWidgetOutput(outputId, "r2d3", width, 
@@ -50,7 +49,6 @@ cv2Output <- function (outputId, width = "100%", height = "400px")
 #' 
 #' @examples
 #' 
-#' \donttest{
 #'library(shiny)
 #'library(cv2r)
 #'
@@ -70,8 +68,8 @@ cv2Output <- function (outputId, width = "100%", height = "400px")
 #'    imshow("id", input$video[100:200,150:250]) })
 #'}
 #'
-#'shinyApp(ui, server)
-#' }
+#' #shinyApp(ui, server)
+#' 
 renderCv2 <- function (expr, env = parent.frame(), quoted = FALSE) 
 {
   if (!quoted) {
@@ -98,7 +96,7 @@ renderCv2 <- function (expr, env = parent.frame(), quoted = FALSE)
 #' @export
 #'
 #' @examples
-#' \donttest{
+#' 
 #'library(shiny)
 #'library(cv2r)
 #'
@@ -118,8 +116,8 @@ renderCv2 <- function (expr, env = parent.frame(), quoted = FALSE)
 #'    imshow("id", input$video[100:200,150:250]) })
 #'}
 #'
-#'shinyApp(ui, server)
-#'}
+#' #shinyApp(ui, server)
+#'
 inputCv2Cam <- function(inputId, width=320, height=240, fps=6, show_live=F, show_captured = T, encoding = "image/jpeg", quality = 0.9) {
     shiny::div(
         shiny::tags$video(id=inputId, width=width, height=height, style=if (!show_live) "display:none;" else ""),
