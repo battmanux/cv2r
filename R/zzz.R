@@ -8,28 +8,17 @@
 #' cv2r$cvtColor(my_image, cv2r$COLOR_BGR2HSV)
 #' 
 #' @export
-cv2r <- new.env()
+cv2r <- NULL
 
 .onLoad <- function(libname, pkgname) {
     
-    reticulate:::ensure_python_initialized()
-    
     # load cv2 without convertion and assign it to the package env and GlobalEnv
-    l_cv2 <- reticulate::import("cv2", convert = F)
-    
-    #assign("cv2", l_cv2, pos = .GlobalEnv) 
-    
-    lapply(
-        names(l_cv2), 
-        function(x) assign(
-            x, 
-            reticulate:::`$.python.builtin.module`(l_cv2, x),
-            pos = cv2r )
-    )
+    cv2r <<- reticulate::import("cv2", convert = F, delay_load = T)
            
     # Overload reticulate python env to ba able to use R functions from python 
-    py_inject_r(.GlobalEnv)
-    
+    try({
+        py_inject_r(.GlobalEnv)
+    })
     
     if ( length(find.package("shiny", quiet = T)) == 1 ) {
         shiny::registerInputHandler("base64img", base64img2ndarray, force = TRUE)

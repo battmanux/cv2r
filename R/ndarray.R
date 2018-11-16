@@ -1,3 +1,15 @@
+#' Install opencv 
+#' 
+#' Thisi is usefull if you do not have opencv installed yet
+#'
+#' @param method auto
+#' @param conda auto
+#'
+#' @export
+#'
+install_opencv <- function(method = "auto", conda = "auto") {
+    reticulate::py_install("opencv", method = method, conda = conda)
+}
 
 #' Subset numpy.ndarray from R
 #'
