@@ -11,6 +11,7 @@ cv2r is an R wrapper to Pyhon OpenCV using reticulate.
 There is a few additions to simplify the integration in RStudio.
 
 ```{r}
+library(reticulate)
 library(cv2r)
 
 img_url <- "https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png"
@@ -35,5 +36,26 @@ my_r_image <- reticulate::py_to_r(my_image)
 imshow(mat=my_r_image[50:300,200:900,c(4,2,2)])
 ```
 
+If you are using RStudio 1.2 you can call plot from a python chunk
 
+```{python}
+
+print(r.my_image.shape)
+
+```
+
+You can naturraly do your cv2 code in python
+
+```{python}
+import cv2
+
+#help(cv2.blur)
+#print(r.my_image.shape)
+
+blured_img = cv2.blur(r.my_image, (100,100) )
+
+# We call the cv2r::imshow version to get the result in the markdown document
+r.imshow(mat=blured_img)
+
+```
 

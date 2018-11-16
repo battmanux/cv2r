@@ -1,4 +1,5 @@
 ## ------------------------------------------------------------------------
+library(reticulate)
 library(cv2r)
 
 img_url <- "https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png"
