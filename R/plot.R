@@ -78,7 +78,15 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
         list(id=winname, scale = scale, type="data:image/png;base64", data=l_b64img) 
     )
     
-    r2d3::r2d3(data=l_data, script = system.file("simple_png_view.js", package = "cv2r"))
+    l_out <- r2d3::r2d3(data=l_data, script = system.file("simple_png_view.js", package = "cv2r"))
+
+    # knitr does not call print from a python chunk
+    if ( "options" %in% names(sys.frames()[[1]]) &&
+         sys.frames()[[1]]$options$engine == "python") {
+        print(l_out)
+    } else {
+        l_out
+    }
 }
 
 
