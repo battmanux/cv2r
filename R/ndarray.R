@@ -1,16 +1,3 @@
-#' Install opencv 
-#' 
-#' Thisi is usefull if you do not have opencv installed yet
-#'
-#' @param method auto
-#' @param conda auto
-#'
-#' @export
-#'
-install_opencv <- function(method = "auto", conda = "auto") {
-    reticulate::py_install("opencv", method = method, conda = conda)
-}
-
 #' Subset numpy.ndarray from R
 #'
 #' Caution, this function uses R index counting style : first elemnt at id 0!
@@ -24,12 +11,8 @@ install_opencv <- function(method = "auto", conda = "auto") {
 #' @return numpy.ndarray subset
 #' @export
 #'
-#' @examples
-#' 
-#' my_image <- imread("https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png")
-#' plot(my_image[1:100,1:100,])
-#' imshow("Red",my_image[,,3])
-#' 
+#' @example inst/examples/plot.R
+#'  
 #' 
 `[.numpy.ndarray` <- function(mat, axe1, axe2, axe3, env = parent.frame()) {
     

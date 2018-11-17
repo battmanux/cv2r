@@ -12,12 +12,7 @@
 #' 
 #' @export
 #'
-#' @examples
-#' my_image <- imread("https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png")
-#' imshow(mat= my_image)
-#' 
-#' # you can also do plot(my_image)
-#' 
+#' @example inst/examples/plot.R
 #' 
 imread <- function(filename, flags=-1L) {
     if ( grepl("^https?://.*", x = filename) ) {
@@ -42,11 +37,7 @@ imread <- function(filename, flags=-1L) {
 #' @return r2d3 object
 #' @export
 #'
-#' @examples
-#' my_image <- imread("https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png")
-#' imshow(mat=my_image)
-#' 
-#' # you can also do plot(my_image)
+#' @example inst/examples/plot.R
 #' 
 imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1000, keep_shape = T, scale = 1.0) {
 
@@ -98,10 +89,7 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
 #' @return Show image in Viwer pane
 #' @export
 #'
-#' @examples
-#' 
-#' my_image <- imread("https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png")
-#' print(my_image) # or just my_image
+#' @example inst/examples/plot.R
 #' 
 print.numpy.ndarray <- function(x, ...) {
     mat = x
@@ -126,10 +114,7 @@ print.numpy.ndarray <- function(x, ...) {
 #'
 #' @return Show image in Viwer pane
 #'
-#' @examples
-#' 
-#' my_image <- imread("https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png")
-#' plot(my_image)
+#' @example inst/examples/plot.R
 #' 
 #' @export
 plot.numpy.ndarray <- function(mat) {
