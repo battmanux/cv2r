@@ -10,11 +10,17 @@ vignette: >
 cv2r is an R wrapper to Pyhon OpenCV using reticulate.
 There is a few additions to simplify the integration in RStudio.
 
+The very first time you may need to install OpenCV lib in your python environment.
+
 ```{r}
 library(reticulate)
-py_install("opencv-python")
-
 library(cv2r)
+install_opencv()
+```
+
+Than it is pretty simle to read and show an image.
+
+```{r}
 
 img_url <- "https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png"
 

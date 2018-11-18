@@ -15,11 +15,13 @@
 #' @example inst/examples/plot.R
 #' 
 imread <- function(filename, flags=-1L) {
+    
     if ( grepl("^https?://.*", x = filename) ) {
         l_tmpfile <- tempfile(fileext = ".bin")
         curl::curl_download(filename, l_tmpfile)
     } else {
-        l_tmpfile <- filename
+        # This allows ~/doc and ../doc
+        l_tmpfile <- normalizePath(filename)
     }
         
     cv2r$imread(l_tmpfile, flags)

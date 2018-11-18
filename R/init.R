@@ -30,7 +30,7 @@ cv2_available <- function(silent = FALSE){
     if(msg != ""){
         if (!silent) {
             message(msg, "\n",
-                    "See reticulate::use_python('opencv') or reticulate::use_python('opencv-python') to set python path, ", "\n",)
+                    "See reticulate::use_python() or install_opencv() to set python path and install OpenCV.\n")
         }
         FALSE
     } else TRUE
@@ -46,5 +46,10 @@ cv2_available <- function(silent = FALSE){
 #' @export
 #'
 install_opencv <- function(method = "auto", conda = "auto") {
-    reticulate::py_install("opencv", method = method, conda = conda)
+    try({
+        if (Sys.info()['sysname'] == "Linux")
+            reticulate::py_install("opencv-python", method = method, conda = conda)
+        else
+            reticulate::py_install("opencv", method = method, conda = conda)
+    })
 }
