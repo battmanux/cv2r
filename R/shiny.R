@@ -48,6 +48,9 @@ renderCv2 <- function (expr, env = parent.frame(), quoted = FALSE)
 #' @param fps      Frames per secondes
 #' @param show_live  Shall we show webcam stream
 #' @param show_captured  Shall we show the captured image
+#' @param select_cam  Prefered camera on smartphone (user or environment, default)
+#' @param auto_send_video Send video picture every fps
+#' @param auto_send_audio Send audio buffer every audio_buff_size
 #' @param encoding Picture encoding over HTTP
 #' @param quality  Encoding quality (if encoding = image/jpeg)
 #'
@@ -56,37 +59,158 @@ renderCv2 <- function (expr, env = parent.frame(), quoted = FALSE)
 #'
 #' @example inst/examples/sampleApp.r
 #'
-inputCv2Cam <- function(inputId, width=320, height=240, fps=6, show_live=F, show_captured = T, encoding = "image/jpeg", quality = 0.9) {
+inputCv2Cam <- function(inputId, 
+                        width=320, height=240, fps=15, 
+                        show_live=T, show_captured = F, 
+                        select_cam = "default",
+                        auto_send_video = F, 
+                        auto_send_audio = T,
+                        audio_buff_size = 4096,
+                        encoding = "image/jpeg", quality = 0.9,
+                        audio=F) {
+  
+  if (select_cam == "default") {
+    cam_mode  <- ""
+  } else if (select_cam == "user" ) {
+    cam_mode  <- ', facingMode:  \'user\'  '
+  } else {
+    cam_mode  <- ', facingMode:  \'environment\'  '
+  }
+  
+  
+    l_stream_audio <- ifelse(audio, "true", "false")
+    if ( audio ) 
+      l_go_bt <- shiny::actionButton(inputId = "go", label = "Start Audio Feedback")
+    else
+      l_go_bt <- list()
+    
     shiny::div(
-        shiny::tags$video(id=inputId, width=width, height=height, style=if (!show_live) "display:none;" else ""),
+        l_go_bt,
+        shiny::tags$video(id=inputId, width=width, height=height, autoplay="", muted="", style=if (!show_live) "display:none;" else ""),
         shiny::tags$canvas(id="canvas", width=width, height=height, style=if (!show_captured) "display:none;" else ""),
         shiny::tags$script(shiny::HTML(paste0('
-$(document).ready(function(){
-  let video = document.getElementById("',inputId,'"); // video is the id of video tag
-  navigator.mediaDevices.getUserMedia({ video: { width: ',width,', height: ',height,' }, audio: false })
+audioCtx = new AudioContext();
+scriptNode = audioCtx.createScriptProcessor(',audio_buff_size,', 1, 1);
+video = document.getElementById("',inputId,'"); // video is the id of video tag
+canvas = document.getElementById("canvas") 
+gAudioBuffer = [];
+
+function _arrayBufferToBase64( buffer ) {
+    var binary = "";
+    var bytes = new Uint8Array( buffer );
+    var len = bytes.byteLength;
+    for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode( bytes[ i ] );
+    }
+    return window.btoa( binary );
+}
+
+scriptNode.onaudioprocess = function(audioProcessingEvent) {
+    arrayBufferIn = audioProcessingEvent.inputBuffer.getChannelData(0);
+    arrayBufferOut = audioProcessingEvent.outputBuffer.getChannelData(0)
+    
+    base64buff = _arrayBufferToBase64(arrayBufferIn.buffer);
+  
+    Shiny.onInputChange("',inputId,'_audio", base64buff );
+  
+    if ( gAudioBuffer.length > 0 ) {
+
+      for (var sample = 0; sample < gAudioBuffer.length; sample++) {
+        // make output equal to the same as the input
+        arrayBufferOut[sample] = gAudioBuffer[sample];
+      }
+
+      gAudioBuffer = [];
+    }
+    
+    }
+
+
+start = function(){
+      
+  constraint = { video: { width: ',width,', height: ',height,' ',cam_mode,' }', ifelse(audio, ', audio: true }', '}'), '
+  
+  count = 0;    
+  navigator.mediaDevices.enumerateDevices().then(function(mediaDevices) { 
+  mediaDevices.forEach(mediaDevice => {
+    if (mediaDevice.kind === "videoinput") {
+        count += 1 
+    } } ) ; 
+    console.log(count) } ) 
+    
+  if ( count == 1) {
+    constraint["video"]["facingMode"] = "default";
+  }
+    
+  navigator.mediaDevices.getUserMedia(constraint)
   .then(function(stream) {
+    
+    ',ifelse(!audio, '', '
+  go.addEventListener("click", function() {
+    if ( video.muted == false ) 
+      video.muted = true;
+    else
+      video.muted = false;
+  });
+  
+    microphone = audioCtx.createMediaStreamSource(stream);
+ 
+    microphone.connect(scriptNode);
+    scriptNode.connect(audioCtx.destination);
+    '),'
     video.srcObject = stream;
+
     video.play();
   })
   .catch(function(err) {
     console.log("An error occurred! " + err);
   });
 
-
-  function snap() {
-    var canvas = document.getElementById("canvas") 
+  function snap(message) {
+    console.log(message);
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     context = canvas.getContext("2d")
-    context.drawImage(video, 0, 0, ',width,', ',height,');
+    context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
     imgBase = canvas.toDataURL("',encoding,'", ',quality,')
     Shiny.onInputChange("',inputId,':base64img", imgBase.replace(/^data:image.*;base64,/, ""))
   }
 
-  setInterval(snap, ',as.integer(1000/fps),');
+  Shiny.addCustomMessageHandler("',inputId,'_snap", snap);
 
-});
+  function audio_play(message) {
+  
+  }
+
+  Shiny.addCustomMessageHandler("',inputId,'_audio_play", audio_play);
+
+  auto_send_video = ',ifelse(auto_send_video,"true", "false") ,';
+
+  if ( auto_send_video ) {
+    setInterval(snap, ',as.integer(1000/fps),');
+  }
+
+};
+
+
+
+  start();
 
 ', collapse = "")))
     )
+}
+
+#' Request a picture to a inputCv2Cam
+#'
+#' @param session shny session
+#' @param inputId inputCv2Cam inputId
+#' @param crop crop picture before sending
+#'
+#' @return no return. input$[inputId] will contain the new frame
+#' @export
+#'
+cv2rInputSnap <- function(session, inputId, crop = list(x=0,y=0,w=-1,h=-1)) {
+  session$sendCustomMessage("video_snap", crop)
 }
 
 # convert base64 string into an OpenCV Mat (numpy.ndarray)
