@@ -1,7 +1,9 @@
+
+
 library(shiny)
 library(cv2r)
 
-if ( cv2_available()) {
+if ( cv2_available() ) {
     ui <- fluidPage(
         inputCv2Cam("video"),
         cv2Output(outputId = "zoom")
@@ -18,7 +20,9 @@ if ( cv2_available()) {
             imshow("id", input$video[100:200,150:250]) })
     }
     
-    # shinyApp(ui, server)
+    if (interactive()) {
+        shinyApp(ui, server)
+    }
     
 }
 
