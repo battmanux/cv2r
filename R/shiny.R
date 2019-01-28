@@ -31,9 +31,15 @@ cv2Output <- function (outputId, width = "320", height = "240px")
 #'  
 renderCv2 <- function (expr, env = parent.frame(), quoted = FALSE) 
 {
+  
   if (!quoted) {
     expr <- substitute(expr)
   }
+
+  if ( inherits(expr, "numpy.ndarray") ) {
+    expr <- imshow(mat = expr)
+  }
+  
   htmlwidgets::shinyRenderWidget(expr, r2d3::d3Output, env, quoted = TRUE)
 }
 
@@ -87,6 +93,33 @@ $(document).ready(function(){
 
 ', collapse = "")))
     )
+}
+
+
+#' Capture picture from webcam
+#'
+#' @param width    Width of the captured image
+#' @param height   Height of the captured image
+#' @param encoding Picture encoding over HTTP
+#' @param quality  Encoding quality (if encoding = image/jpeg)
+#'
+#' @return "numpy.ndarray"
+#' @export
+#'
+#' @examples
+#' 
+#' if (interactive()) {
+#' 
+#'     l_imge <- capture()
+#' 
+#' }
+#' 
+capture <- function(width=320, height=240, encoding = "image/jpeg", quality = 0.9) {
+  l_output <- NULL
+  l_app <- shiny::shinyApp(ui = shiny::fluidPage(inputCv2Cam("picture", width = width, height, encoding = encoding, quality = quality ), shiny::actionButton("capture", label = "Capture") ),
+                          server = function(input, output, session) { shiny::observeEvent(input$capture, { l_output <<- input$picture ; shiny::stopApp()  })  } )
+  print(l_app)
+  return(l_output)
 }
 
 # convert base64 string into an OpenCV Mat (numpy.ndarray)
