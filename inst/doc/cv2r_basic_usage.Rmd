@@ -1,0 +1,69 @@
+---
+title: "Basic usage of cv2r package"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Basic usage of cv2r package}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+cv2r is an R wrapper to Pyhon OpenCV using reticulate.
+There is a few additions to simplify the integration in RStudio.
+
+The very first time you may need to install OpenCV lib in your python environment.
+
+```{r}
+library(reticulate)
+library(cv2r)
+install_opencv()
+```
+
+Than it is pretty simle to read and show an image.
+
+```{r}
+
+img_url <- "https://upload.wikimedia.org/wikipedia/fr/4/4e/RStudio_Logo.png"
+
+my_image <- imread(img_url)
+
+# Very simple to plot images
+imshow(mat=my_image)
+```
+
+There is also a few modifications to simplify image pixel selection. You can use R matrix index on an numpy.ndarray variable.
+
+```{r}
+
+# Lets show the alpha mask
+imshow(mat=my_image[,,4])
+```
+
+```{r}
+# To use advances matrix subseting you shall convert the matrix to R 
+my_r_image <- reticulate::py_to_r(my_image)
+imshow(mat=my_r_image[50:300,200:900,c(4,2,2)])
+```
+
+If you are using RStudio 1.2 you can call plot from a python chunk
+
+```{python}
+
+print(r.my_image.shape)
+
+```
+
+You can naturraly do your cv2 code in python
+
+```{python}
+import cv2
+
+#help(cv2.blur)
+#print(r.my_image.shape)
+
+blured_img = cv2.blur(r.my_image, (100,100) )
+
+# We call the cv2r::imshow version to get the result in the markdown document
+r.imshow(mat=blured_img)
+
+```
+
