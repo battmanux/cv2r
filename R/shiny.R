@@ -116,8 +116,11 @@ $(document).ready(function(){
 #' 
 capture <- function(width=320, height=240, encoding = "image/jpeg", quality = 0.9) {
   l_output <- NULL
-  l_app <- shiny::shinyApp(ui = shiny::fluidPage(inputCv2Cam("picture", width = width, height, encoding = encoding, quality = quality ), shiny::actionButton("capture", label = "Capture") ),
-                          server = function(input, output, session) { shiny::observeEvent(input$capture, { l_output <<- input$picture ; shiny::stopApp()  })  } )
+  l_app <- shiny::shinyApp(ui = shiny::fluidPage(inputCv2Cam("picture", width = width, height, encoding = encoding, quality = quality ), shiny::tags$button(
+    id="capture", class = "btn btn-primary action-button", 
+    onclick = "setTimeout(function(){window.close();},500);",  "Capture" ) 
+    ), 
+    server = function(input, output, session) { shiny::observeEvent(input$capture, { l_output <<- input$picture ; shiny::stopApp()  })  } )
   print(l_app)
   return(l_output)
 }
