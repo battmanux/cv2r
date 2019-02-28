@@ -47,9 +47,18 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     
     if ( ! "numpy.ndarray" %in% class(mat) )
         l_mat <- reticulate::np_array(data = mat, dtype = "uint8")
-    else
-        l_mat <- mat
-    
+    else {
+        if (mat$dtype == "uint8")
+            l_mat <- mat
+        else if (mat$dtype == "bool") {
+            l_mat <- mat$`__mul__`(255L)$astype("uint8")
+        } else {
+            cat("forcing dtype to uint8 when displaying (from ", mat$dtype, ")\n")
+            l_mat <- mat$astype("uint8")
+        }
+            
+    }
+        
     if ( keep_shape ) {
         l_shape <- unlist(reticulate::py_to_r(l_mat$shape))[1:2]
         l_ratio <- max(l_shape[1:2] / c(render_max_h, render_max_w))
@@ -61,11 +70,11 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     render_max_h <- as.integer(render_max_h)
     
     if ( render_max_h < l_shape[[1]] || render_max_w < l_shape[[2]] ) {
-        mat <- cv2r$resize(src=mat, dsize=reticulate::tuple(render_max_w,render_max_h))
+        l_mat <- cv2r$resize(src=l_mat, dsize=reticulate::tuple(render_max_w,render_max_h))
     }
     
     l_b64img <- base64enc::base64encode(
-        reticulate::py_to_r(cv2r$imencode(img=mat, ext=".png"))[[2]])
+        reticulate::py_to_r(cv2r$imencode(img=l_mat, ext=".png"))[[2]])
     
     l_data <- list(
         list(id=winname, scale = scale, type="data:image/png;base64", data=l_b64img) 
