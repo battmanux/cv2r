@@ -77,10 +77,16 @@ summary.numpy.ndarray <- function(x) {
 `==.numpy.ndarray` <- function(a, b) a$`__eq__`(b)
 
 #' @export
-`<=.numpy.ndarray` <- function(a, b) a$`__lt__`(b)
+`<=.numpy.ndarray` <- function(a, b) a$`__le__`(b)
 
 #' @export
-`>=.numpy.ndarray` <- function(a, b) a$`__gt__`(b)
+`>=.numpy.ndarray` <- function(a, b) a$`__ge__`(b)
+
+#' @export
+`<.numpy.ndarray` <- function(a, b) a$`__lt__`(b)
+
+#' @export
+`>.numpy.ndarray` <- function(a, b) a$`__gt__`(b)
 
 #' @export
 `!=.numpy.ndarray` <- function(a, b) a$`__ne__`(b)
