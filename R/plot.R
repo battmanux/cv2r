@@ -71,8 +71,13 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     
     # convert color spaces
     if ( ! is.null( attr(l_mat, "colorspace") ) ) {
-        if ( ! attr(l_mat, "colorspace") %in% c("GREY", "BGR") ) {
-            l_mat <- cv2r$cvtColor(l_mat, cv2r[[paste0("COLOR_",attr(l_mat, "colorspace"),"2BGR")]])
+        if ( ! attr(l_mat, "colorspace") %in% c("GREY", "BGR", "BGRA") ) {
+            if (length(l_mat$shape) == 4 && l_mat$shape[3] == 4)
+                l_mat <- cv2r$cvtColor(l_mat, cv2r[[paste0("COLOR_",attr(l_mat, "colorspace"),"2BGRA")]])
+            if (length(l_mat$shape) == 4 && l_mat$shape[3] == 3)
+                l_mat <- cv2r$cvtColor(l_mat, cv2r[[paste0("COLOR_",attr(l_mat, "colorspace"),"2BGR")]])
+            if (length(l_mat$shape) == 4 && l_mat$shape[3] == 2)
+                warning("Unsuported number of color channel")
         }
     }
         
@@ -151,7 +156,7 @@ cvtColor <- function(mat) {
 #' 
 print.numpy.ndarray <- function(x, ...) {
     mat = x
-    cat("Python ndarray: shape=")
+    cat("Python ndarray: colorspace=",attr(x, "colorspace")," shape= ")
     print(mat$shape)
     
     if ( length(mat$shape) == 3 && reticulate::py_to_r(mat$shape)[[3]] %in% c(1,3,4) ) {
