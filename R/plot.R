@@ -24,7 +24,14 @@ imread <- function(filename, flags=-1L) {
         l_tmpfile <- normalizePath(filename)
     }
         
-    cv2r$imread(l_tmpfile, flags)
+    l_out <- cv2r$imread(l_tmpfile, flags)
+    
+    if (length(l_out$shape) == 3)
+        attr(l_out, "colorspace") <- "BGR"
+    else
+        attr(l_out, "colorspace") <- "GRAY"
+    
+    l_out
 }
 
 #' Overload of OpenCV imshow to make it compatible with RStudio server and Shiny
@@ -45,6 +52,7 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
 
     # Clean input types
     
+    # Convert from not displayable types
     if ( ! "numpy.ndarray" %in% class(mat) )
         l_mat <- reticulate::np_array(data = mat, dtype = "uint8")
     else {
@@ -57,6 +65,13 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
             l_mat <- mat$astype("uint8")
         }
             
+    }
+    
+    # convert color spaces
+    if ( ! is.null( attr(l_mat, "colorspace") ) ) {
+        if ( ! attr(l_mat, "colorspace") %in% c("GREY", "BGR") ) {
+            l_mat <- cv2r$cvtColor(l_mat, cv2r[[paste0("COLOR_",attr(l_mat, "colorspace"),"2BGR")]])
+        }
     }
         
     if ( keep_shape ) {
@@ -91,6 +106,35 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     }
 }
 
+
+`cvtColor<-` <- function(mat, value) { 
+    l_from <- cvtColor(mat)
+    l_to <- value
+    l_trans <- paste0("COLOR_",l_from,"2",l_to)
+    
+    if ( ! l_trans %in% names(cv2r) ) {
+        warning("Unable to find convertion function: ", l_trans)
+        l_ret <- mat
+    } else {
+        l_ret <- cv2r$cvtColor(mat, cv2r[[l_trans]])
+        attr(l_ret, "colorspace") <- l_to
+    }
+    return(l_ret)
+}
+    
+cvtColor <- function(mat) {
+    l_cspace <- attr(mat, 'colorspace')
+    
+    if ( is.null(l_cspace) )
+        if ( length(mat$shape) == 3) 
+            l_ret <- "GRB"
+        else
+            l_ret <- "GREY"
+    else
+        l_ret <- l_cspace
+    
+    return(l_ret)
+}
 
 #' print an image from OpenCV 
 #'
