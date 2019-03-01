@@ -36,8 +36,10 @@ renderCv2 <- function (expr, env = parent.frame(), quoted = FALSE)
     expr <- substitute(expr)
   }
 
-  if ( inherits(expr, "numpy.ndarray") ) {
-    expr <- imshow(mat = expr)
+  if ( length(grep("imshow", expr)) == 0 ) {
+    l_fun <- quote({ lf_out <- function() { } ; imshow(mat=lf_out()) }  )
+    l_fun[[2]][[3]][[3]] <- expr
+    expr <- l_fun
   }
   
   htmlwidgets::shinyRenderWidget(expr, r2d3::d3Output, env, quoted = TRUE)

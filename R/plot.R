@@ -53,9 +53,9 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     # Clean input types
     
     # Convert from not displayable types
-    if ( ! "numpy.ndarray" %in% class(mat) )
+    if ( inherits(mat, "array" ) || inherits(mat, "matrix") ) {
         l_mat <- reticulate::np_array(data = mat, dtype = "uint8")
-    else {
+    } else if ( inherits(mat, "numpy.ndarray") ) {
         if (mat$dtype == "uint8")
             l_mat <- mat
         else if (mat$dtype == "bool") {
@@ -65,6 +65,8 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
             l_mat <- mat$astype("uint8")
         }
             
+    } else {
+        return(NULL)
     }
     
     # convert color spaces
@@ -92,7 +94,7 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
         reticulate::py_to_r(cv2r$imencode(img=l_mat, ext=".png"))[[2]])
     
     l_data <- list(
-        list(id=winname, scale = scale, type="data:image/png;base64", data=l_b64img) 
+        list(id=runif(1), winname=winname, scale = scale, type="data:image/png;base64", data=l_b64img) 
     )
     
     l_out <- r2d3::r2d3(data=l_data, script = system.file("simple_png_view.js", package = "cv2r"))
@@ -106,7 +108,7 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     }
 }
 
-
+#' @export
 `cvtColor<-` <- function(mat, value) { 
     l_from <- cvtColor(mat)
     l_to <- value
@@ -121,13 +123,14 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     }
     return(l_ret)
 }
-    
+
+#' @export    
 cvtColor <- function(mat) {
     l_cspace <- attr(mat, 'colorspace')
     
     if ( is.null(l_cspace) )
         if ( length(mat$shape) == 3) 
-            l_ret <- "GRB"
+            l_ret <- "BGR"
         else
             l_ret <- "GREY"
     else

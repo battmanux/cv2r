@@ -1,23 +1,22 @@
-
-
 library(shiny)
 library(cv2r)
 
 if ( cv2_available() ) {
-    ui <- fluidPage(
-        inputCv2Cam("video"),
-        cv2Output(outputId = "zoom")
-    )
+    ui <- fluidPage(fluidRow(
+        column(4,inputCv2Cam("video")),
+        column(4,cv2Output(outputId = "zoom")),
+        column(4,cv2Output(outputId = "border"))
+    ))
     
     server <- function(input, output, session) {
         
         output$zoom <- renderCv2({
-            img <- input$video
-            
-            if (is.null(img))
-                return(NULL)
-            
-            imshow("id", input$video[100:200,150:250]) })
+            input$video[100:200,120:280]
+        })
+        
+        output$border <- renderCv2({
+            cv2r$Canny(input$video, 10L, 50L)
+        })
     }
     
     if (interactive()) {
@@ -25,5 +24,3 @@ if ( cv2_available() ) {
     }
     
 }
-
-
