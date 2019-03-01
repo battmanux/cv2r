@@ -16,6 +16,8 @@
 #' 
 `[.numpy.ndarray` <- function(mat, axe1, axe2, axe3, env = parent.frame()) {
     
+    l_cspace <- attr(mat, "colorspace")
+    
     shift_by_one <- function(x) {
         xd <- deparse(x) 
         
@@ -48,8 +50,15 @@
     
     main <- reticulate::import_main(convert = F)
     main[["_r_tmp_mat"]] <- mat
-    reticulate::py_eval(paste0("_r_tmp_mat[",l_a1,",",l_a2,",",l_a3,"]"), convert = F)
+    l_out <- reticulate::py_eval(paste0("_r_tmp_mat[",l_a1,",",l_a2,",",l_a3,"]"), convert = F)
     
+    # If shape was reduced due to selection, tranform to grey
+    if ( length(l_out$shape) == 2) 
+        l_cspace <- "GREY"
+    
+    attr(l_out, "colorspace") <- l_cspace
+    
+    l_out
 }
 
 #' @export
@@ -69,7 +78,13 @@ summary.numpy.ndarray <- function(x) {
     if (!missing(axe2) ) param$axe2 <- axe2
     if (!missing(axe3) ) param$axe3 <- axe3
     x <- do.call(cv2r:::`[.numpy.ndarray`, param)
-    x$fill(value)
+    if (is.numeric(value)) {
+        x$fill(value)
+    } else {
+        np <- reticulate::import("numpy")
+        np$copyto(x, value)
+    }
+        
     return(mat)
 } 
 
@@ -101,7 +116,7 @@ max.numpy.ndarray <- function(x) x$max()
 min.numpy.ndarray <- function(x) x$min()
 
 #' @export
-median.numpy.ndarray <- function(x) x$median()
+median.numpy.ndarray <- function(x) median(reticulate::py_to_r(x))
 
 #' @export
 sd.numpy.ndarray <- function(x) x$std()
