@@ -72,11 +72,11 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     # convert color spaces
     if ( ! is.null( attr(l_mat, "colorspace") ) ) {
         if ( ! attr(l_mat, "colorspace") %in% c("GREY", "BGR", "BGRA") ) {
-            if (length(l_mat$shape) == 4 && l_mat$shape[3] == 4)
+            if (length(l_mat$shape) == 3 && l_mat$shape[2] == 4)
                 l_mat <- cv2r$cvtColor(l_mat, cv2r[[paste0("COLOR_",attr(l_mat, "colorspace"),"2BGRA")]])
-            if (length(l_mat$shape) == 4 && l_mat$shape[3] == 3)
+            if (length(l_mat$shape) == 3 && l_mat$shape[2] == 3)
                 l_mat <- cv2r$cvtColor(l_mat, cv2r[[paste0("COLOR_",attr(l_mat, "colorspace"),"2BGR")]])
-            if (length(l_mat$shape) == 4 && l_mat$shape[3] == 2)
+            if (length(l_mat$shape) == 3 && l_mat$shape[2] == 2)
                 warning("Unsuported number of color channel")
         }
     }
