@@ -89,6 +89,70 @@ summary.numpy.ndarray <- function(x) {
 } 
 
 #' @export
+`*.numpy.ndarray` <- function(a, b) {
+    if ( is.numeric(b) ) {
+        if (a$dtype == "uint8")
+            b <- as.integer(b)
+        l_out <- a$`__mul__`(b)
+        
+    } else if (inherits(b, "numpy.ndarray")) {
+        l_out <- a$`__mul__`(b$astype(a$dtype))
+    }
+    
+    attr(l_out, "colorspace") <- cvtColor(a)
+    l_out
+} 
+
+
+#' @export
+`/.numpy.ndarray` <- function(a, b) {
+    if ( is.numeric(b) ) {
+        if (a$dtype == "uint8")
+            b <- as.integer(b)
+        l_out <- a$`__div__`(b)
+        
+    } else if (inherits(b, "numpy.ndarray")) {
+        l_out <- a$`__div__`(b$astype(a$dtype))
+    }
+    
+    attr(l_out, "colorspace") <- cvtColor(a)
+    l_out
+} 
+
+#' @export
+`+.numpy.ndarray` <- function(a, b) {
+  if ( is.numeric(b) ) {
+      if (a$dtype == "uint8")
+          b <- as.integer(b)
+      l_out <- a$`__add__`(b)
+      
+  } else if (inherits(b, "numpy.ndarray")) {
+      l_out <- a$`__add__`(b$astype(a$dtype))
+  } else {
+      l_out <- a
+  }
+
+    attr(l_out, "colorspace") <- cvtColor(a)
+    l_out
+} 
+
+#' @export
+`-.numpy.ndarray` <- function(a, b) {
+    if ( is.numeric(b) ) {
+        if (a$dtype == "uint8")
+            b <- as.integer(b)
+        l_out <- a$`__sub__`(b)
+        
+    } else if (inherits(b, "numpy.ndarray")) {
+        l_out <- a$`__sub__`(b$astype(a$dtype))
+    }
+    
+    attr(l_out, "colorspace") <- cvtColor(a)
+    l_out
+} 
+
+
+#' @export
 `==.numpy.ndarray` <- function(a, b) a$`__eq__`(b)
 
 #' @export

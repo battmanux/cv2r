@@ -61,7 +61,7 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
         else if (mat$dtype == "bool") {
             l_mat <- mat$`__mul__`(255L)$astype("uint8")
         } else {
-            cat("forcing dtype to uint8 when displaying (from ", mat$dtype, ")\n")
+            cat("forcing dtype to uint8 when displaying from ", as.character(mat$dtype), "\n")
             l_mat <- mat$astype("uint8")
         }
             
@@ -160,7 +160,6 @@ print.numpy.ndarray <- function(x, ...) {
     print(mat$shape)
     
     if ( length(mat$shape) == 3 && reticulate::py_to_r(mat$shape)[[3]] %in% c(1,3,4) ) {
-        print(imshow(mat = mat))
         invisible(print(imshow(mat = mat)))
     } else if ( length(mat$shape) == 2 ) {
         print(imshow(mat = mat))
