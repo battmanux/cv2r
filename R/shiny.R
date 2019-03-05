@@ -122,8 +122,14 @@ capture <- function(width=320, height=240, encoding = "image/jpeg", quality = 0.
     id="capture", class = "btn btn-primary action-button", 
     onclick = "setTimeout(function(){window.close();},500);",  "Capture" ) 
     ), 
-    server = function(input, output, session) { shiny::observeEvent(input$capture, { l_output <<- input$picture ; shiny::stopApp()  })  } )
-  print(l_app)
+    server = function(input, output, session) { shiny::observeEvent(input$capture, ignoreInit = T, ignoreNULL = T, { l_output <<- input$picture ; shiny::stopApp()  })  } )
+  
+  # if desktop app, run in a browser window
+  if (Sys.getenv("RSTUDIO_HTTP_REFERER") == "")
+    shiny::runApp(l_app, launch.browser = T)
+  else
+    shiny::runGadget(l_app)
+  
   return(l_output)
 }
 
