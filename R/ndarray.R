@@ -71,6 +71,48 @@ summary.numpy.ndarray <- function(x) {
     summary(reticulate::py_to_r(x))
 }
 
+extend.shape <- function(a, b) {
+    if ( a$shape == b$shape ) {
+        l_out <- b
+    } else {
+        if ( a$shape[0] == b$shape[0] && a$shape[1] == b$shape[1] ) {
+            l_out <- a$copy()
+            
+            if ( length(a$shape) == 3 && length(b$shape) == 2)  {
+                
+                for ( i in seq_len(py_to_r(a$shape[2]) )) {
+                    l_out[,,i] <- b
+                }
+                
+            } else if ( length(a$shape) == 2 && length(b$shape) == 3 ) {
+                
+                warning("Only first layer is used in mathematical operation")
+                l_out <- b[,,1]
+                
+            } else if ( length(a$shape) == 3 && length(b$shape) == 3 && a$shape[2] > b$shape[2]) {
+                
+                for ( i in seq_len(py_to_r(a$shape[2]))) {
+                    warning("Only first layer is used in mathematical operation")
+                    l_out[,,i] <- b[,,1]
+                }
+                
+            } else {
+                stop("unable to fit mat shapes:",
+                     as.character(a$shape),
+                     " -> ", 
+                     as.character(b$shape))
+            }
+            
+        } else {
+            stop("unable to fit mat shapes:",
+                 as.character(a$shape),
+                 " -> ", 
+                 as.character(b$shape))
+        }
+    }
+    return(l_out)
+}
+
 #' @export
 `[<-.numpy.ndarray` <- function(mat, axe1, axe2, axe3, value) {
     param = list(mat=mat)
@@ -90,28 +132,45 @@ summary.numpy.ndarray <- function(x) {
 
 #' @export
 `*.numpy.ndarray` <- function(a, b) {
-    if ( is.numeric(b) ) {
-        if (a$dtype == "uint8")
-            b <- as.integer(b)
+      # This is an optimisation for masks
+      if ( a$dtype == "bool" && !(inherits(b, "numpy.ndarray") && b$dtype == "bool") ) a <- a$astype('uint8')
+      
+      if ( is.numeric(b) ) {
+        if ( as.integer(b) == as.numeric(b) ) {
+          np <- reticulate::import("numpy", convert = F)
+          b <- np$uint0(b)
+        }
+            
         l_out <- a$`__mul__`(b)
         
     } else if (inherits(b, "numpy.ndarray")) {
-        l_out <- a$`__mul__`(b$astype(a$dtype))
+        b <- extend.shape(a, b)
+        np <- reticulate::import("numpy", convert = F)
+        l_out <- np$multiply(a,b)
     }
     
     attr(l_out, "colorspace") <- cvtColor(a)
     l_out
 } 
 
+#' @export
+`&.numpy.ndarray` <- function(a, b) reticulate::import("numpy", convert = F)$multiply(a,b)
+
+#' @export
+`|.numpy.ndarray` <- function(a, b) reticulate::import("numpy", convert = F)$bitwise_or(a,b)
+
 
 #' @export
 `/.numpy.ndarray` <- function(a, b) {
     if ( is.numeric(b) ) {
-        if (a$dtype == "uint8")
-            b <- as.integer(b)
-        l_out <- a$`__div__`(b)
+      if ( as.integer(b) == as.numeric(b) ) {
+        np <- reticulate::import("numpy", convert = F)
+        b <- np$uint0(b)
+      }
+      l_out <- a$`__div__`(b)
         
     } else if (inherits(b, "numpy.ndarray")) {
+        b <- extend.shape(a, b)
         l_out <- a$`__div__`(b$astype(a$dtype))
     }
     
@@ -121,13 +180,20 @@ summary.numpy.ndarray <- function(x) {
 
 #' @export
 `+.numpy.ndarray` <- function(a, b) {
+  # This is an optimisation for masks
+  if ( a$dtype == "bool" && !(inherits(b, "numpy.ndarray") && b$dtype == "bool") ) a <- a$astype('uint8')
+  
   if ( is.numeric(b) ) {
-      if (a$dtype == "uint8")
-          b <- as.integer(b)
-      l_out <- a$`__add__`(b)
+    if ( as.integer(b) == as.numeric(b) ) {
+      np <- reticulate::import("numpy", convert = F)
+      b <- np$uint0(b)
+    }
+    l_out <- a$`__add__`(b)
       
   } else if (inherits(b, "numpy.ndarray")) {
-      l_out <- a$`__add__`(b$astype(a$dtype))
+      b <- extend.shape(a, b)
+      np <- reticulate::import("numpy", convert = F)
+      l_out <- np$add(a,b)
   } else {
       l_out <- a
   }
@@ -139,14 +205,25 @@ summary.numpy.ndarray <- function(x) {
 #' @export
 `-.numpy.ndarray` <- function(a, b) {
     if ( is.numeric(b) ) {
-        if (a$dtype == "uint8")
-            b <- as.integer(b)
-        l_out <- a$`__sub__`(b)
+      if ( as.integer(b) == as.numeric(b) ) {
+        np <- reticulate::import("numpy", convert = F)
+        b <- np$uint0(b)
+      }
+      l_out <- a$`__sub__`(b)
         
     } else if (inherits(b, "numpy.ndarray")) {
+        b <- extend.shape(a, b)
         l_out <- a$`__sub__`(b$astype(a$dtype))
     }
     
+    attr(l_out, "colorspace") <- cvtColor(a)
+    l_out
+} 
+
+
+#' @export
+`!.numpy.ndarray` <- function(a) {
+    l_out <- a$`__neg__`()
     attr(l_out, "colorspace") <- cvtColor(a)
     l_out
 } 

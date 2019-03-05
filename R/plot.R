@@ -60,9 +60,11 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
             l_mat <- mat
         else if (mat$dtype == "bool") {
             l_mat <- mat$`__mul__`(255L)$astype("uint8")
+            attr(l_mat, "colorspace") <- attr(mat, "colorspace") 
         } else {
             cat("forcing dtype to uint8 when displaying from ", as.character(mat$dtype), "\n")
             l_mat <- mat$astype("uint8")
+            attr(l_mat, "colorspace") <- attr(mat, "colorspace") 
         }
             
     } else {
