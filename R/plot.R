@@ -52,6 +52,10 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
 
     # Clean input types
     
+    # prototype is compatible with python, but fix most frequent mistake
+    if (missing( mat ))
+        mat <- winname
+    
     # Convert from not displayable types
     if ( inherits(mat, "array" ) || inherits(mat, "matrix") ) {
         l_mat <- reticulate::np_array(data = mat, dtype = "uint8")
