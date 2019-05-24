@@ -121,7 +121,7 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     l_to <- value
     l_trans <- paste0("COLOR_",l_from,"2",l_to)
     
-    if ( ! l_trans %in% names(cv2r) ) {
+    if ( ! l_trans %in% cv2r_colors ) {
         warning("Unable to find convertion function: ", l_trans)
         l_ret <- mat
     } else {

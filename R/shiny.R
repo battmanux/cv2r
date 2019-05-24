@@ -19,9 +19,12 @@ cv2Output <- function (outputId, width = "320", height = "240px")
 }
   
 
+imshow_decorator <- quote({ lf_out <- function() { } ; imshow(mat=lf_out()) }  )
+
 #' Shiny bindings for OpenCV
 #'
 #' @param expr An expression that plots a OpenCV image (see [imshow()])
+#' @param mat  an opencv mat
 #' @param env  The environment in which to evaluate expr
 #' @param quoted Is expr a quoted expression (with quote())? This is useful if you want to save an expression in a variable
 #'
@@ -29,20 +32,26 @@ cv2Output <- function (outputId, width = "320", height = "240px")
 #' 
 #' @example inst/examples/sampleApp.r
 #'  
-renderCv2 <- function (expr, env = parent.frame(), quoted = FALSE) 
+renderCv2 <- function (expr, mat, env = parent.frame(), quoted = FALSE) 
 {
   
-  if (!quoted) {
-    expr <- substitute(expr)
-  }
-
-  if ( length(grep("imshow", expr)) == 0 ) {
-    l_fun <- quote({ lf_out <- function() { } ; imshow(mat=lf_out()) }  )
-    l_fun[[2]][[3]][[3]] <- expr
-    expr <- l_fun
+  if (missing(expr) && !missing(mat)) {
+    htmlwidgets::shinyRenderWidget(imshow(mat = mat), r2d3::d3Output, env, quoted = FALSE)
+  } else {
+    
+    if (!quoted) {
+      expr <- substitute(expr)
+    }
+    
+    if ( length(grep("imshow", expr)) == 0 ) {
+      l_fun <- imshow_decorator
+      l_fun[[2]][[3]][[3]] <- expr
+      expr <- l_fun
+    }
+    
+    htmlwidgets::shinyRenderWidget(expr, r2d3::d3Output, env, quoted = TRUE)
   }
   
-  htmlwidgets::shinyRenderWidget(expr, r2d3::d3Output, env, quoted = TRUE)
 }
 
 
@@ -140,7 +149,11 @@ capture <- function(width=320, height=240, encoding = "image/jpeg", quality = 0.
 #
 # @return
 base64img2ndarray <- function(data, ...) {
-  l_png <- base64enc::base64decode(what = data)
-  l_mat <- cv2r$imdecode(reticulate::np_array(as.integer(l_png), dtype = "uint8"), -1L)
+
+  l_array <- base64$decodestring(data)
+  l_array <- np$frombuffer(l_array, dtype = np$uint8)  
+  
+  l_mat <- cv2r$imdecode(l_array, -1L)
+  
   l_mat
 }

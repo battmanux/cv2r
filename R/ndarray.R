@@ -1,6 +1,75 @@
+
+
+shift_by_one <- function(x, env) {
+  xd <- deparse(x)
+  
+  if (xd == "\":\"") {
+    l_ret <- ":"
+  } else if (grepl(pattern = "^[0-9]*:[0-9]*$", x = xd) ) {
+    # Faster version
+    l_ret <- paste(collapse  = ":", as.integer(strsplit(xd, ":")[[1]]) - 1)  
+    
+    
+  } else if (grepl(pattern = ":", x = xd) ) {
+    
+    l_args <- unlist(strsplit(xd, ":"))
+    l_ret <- paste0(lapply(
+      seq_along(l_args),
+      function(i) as.integer(eval(parse(text = l_args[[i]]), envir = env))-ifelse(i==1,1,0)
+    ), collapse =  ":")
+  }
+  else
+    l_ret <- as.character(as.integer(x)-1)
+  
+  return(l_ret)
+}
+
+#' Efficient way to crop image
+#' Same thing but faster than mat[axe1_from:axe1_to,]
+#' 
+#' @param mat Image
+#' @param axe1_from  coordinates
+#' @param axe1_to coordinates
+#' @param axe2_from coordinates
+#' @param axe2_to coordinates
+#' @param axe3_from coordinates
+#' @param axe3_to coordinates
+#'
+#' @return
+#' @export
+#'
+#' @examples
+crop <- function(mat, axe1_from, axe1_to, axe2_from, axe2_to, axe3_from, axe3_to) {
+  if (missing(axe1_from) ) axe1_from <- ''  else axe1_from <- as.integer(axe1_from)
+  if (missing(axe1_to) )   axe1_to <- ''    else axe1_to   <- as.integer(axe1_to)
+  if (missing(axe2_from) ) axe2_from <- ''  else axe2_from <- as.integer(axe2_from)
+  if (missing(axe2_to) )   axe2_to <- ''    else axe2_to   <- as.integer(axe2_to)
+  if (missing(axe3_from) ) axe3_from <- ''  else axe3_from <- as.integer(axe3_from)
+  if (missing(axe3_to) )   axe3_to <- ''    else axe3_to   <- as.integer(axe3_to)
+  
+  main <- reticulate::import_main(convert = F)
+  main[["_r_tmp_mat"]] <- mat
+  
+  if ( length(mat$shape) == 3 &&  mat$shape[2] > 1 )
+    axe3 <- paste0(", ",axe3_from, ":", axe3_to)
+  else
+    axe3 <- ""
+  
+  l_out <- reticulate::py_eval(paste0(
+    "_r_tmp_mat[",
+        axe1_from,":",axe1_to,
+    ",",axe2_from,":",axe2_to,
+    axe3,
+    "]"), 
+    convert = F)
+  
+}
+
+
 #' Subset numpy.ndarray from R
 #'
-#' Caution, this function uses R index counting style : first elemnt at id 0!
+#' Caution, this function uses R index counting style : first elemnt at index 1
+#' use crop function if you need performances
 #'
 #' @param mat matrice to subset
 #' @param axe1 axe 1
@@ -15,38 +84,30 @@
 #'  
 #' 
 `[.numpy.ndarray` <- function(mat, axe1, axe2, axe3, env = parent.frame()) {
-    
+  
     l_cspace <- attr(mat, "colorspace")
     
-    shift_by_one <- function(x) {
-        xd <- deparse(x) 
-        
-        if (grepl(pattern = ":", x = xd) ) {
-            
-            l_args <- unlist(strsplit(xd, ":"))
-            paste0(lapply(
-                seq_along(l_args),
-                function(i) as.integer(eval(parse(text = l_args[[i]]), envir = env))-ifelse(i==1,1,0)
-                ), collapse =  ":")
-        }
-        else
-            as.character(as.integer(x)-1)
-    }
-
     if ( missing(axe1) )
-        l_a1 <- ':'
+      l_a1 <- ':'
     else
-        l_a1 <- shift_by_one(substitute(axe1))
+      l_a1 <- substitute(axe1)
     
     if ( missing(axe2) )
-        l_a2 <- ':'
+      l_a2 <- ':'
     else
-        l_a2 <- shift_by_one(substitute(axe2))
+      l_a2 <- substitute(axe2)
     
     if ( missing(axe3) )
-        l_a3 <- ':'
+      l_a3 <- ':'
     else
-        l_a3 <- shift_by_one(substitute(axe3))
+      l_a3 <- substitute(axe3)
+    
+    l_a1 <- shift_by_one(l_a1, env)
+    l_a2 <- shift_by_one(l_a2, env)
+    l_a3 <- shift_by_one(l_a3, env)
+
+    if ( ! ( length(mat$shape) == 3 &&  mat$shape[2] > 1 ) )
+      l_a3 <- ""
     
     main <- reticulate::import_main(convert = F)
     main[["_r_tmp_mat"]] <- mat
