@@ -19,9 +19,12 @@ cv2Output <- function (outputId, width = "320", height = "240px")
 }
   
 
+imshow_decorator <- quote({ lf_out <- function() { } ; imshow(mat=lf_out()) }  )
+
 #' Shiny bindings for OpenCV
 #'
 #' @param expr An expression that plots a OpenCV image (see [imshow()])
+#' @param mat  an opencv mat
 #' @param env  The environment in which to evaluate expr
 #' @param quoted Is expr a quoted expression (with quote())? This is useful if you want to save an expression in a variable
 #'
@@ -29,12 +32,26 @@ cv2Output <- function (outputId, width = "320", height = "240px")
 #' 
 #' @example inst/examples/sampleApp.r
 #'  
-renderCv2 <- function (expr, env = parent.frame(), quoted = FALSE) 
+renderCv2 <- function (expr, mat, env = parent.frame(), quoted = FALSE) 
 {
-  if (!quoted) {
-    expr <- substitute(expr)
+  
+  if (missing(expr) && !missing(mat)) {
+    htmlwidgets::shinyRenderWidget(imshow(mat = mat), r2d3::d3Output, env, quoted = FALSE)
+  } else {
+    
+    if (!quoted) {
+      expr <- substitute(expr)
+    }
+    
+    if ( length(grep("imshow", expr)) == 0 ) {
+      l_fun <- imshow_decorator
+      l_fun[[2]][[3]][[3]] <- expr
+      expr <- l_fun
+    }
+    
+    htmlwidgets::shinyRenderWidget(expr, r2d3::d3Output, env, quoted = TRUE)
   }
-  htmlwidgets::shinyRenderWidget(expr, r2d3::d3Output, env, quoted = TRUE)
+  
 }
 
 
@@ -200,17 +217,39 @@ start = function(){
     )
 }
 
-#' Request a picture to a inputCv2Cam
+#' Capture picture from webcam
 #'
-#' @param session shny session
-#' @param inputId inputCv2Cam inputId
-#' @param crop crop picture before sending
+#' @param width    Width of the captured image
+#' @param height   Height of the captured image
+#' @param encoding Picture encoding over HTTP
+#' @param quality  Encoding quality (if encoding = image/jpeg)
 #'
-#' @return no return. input$[inputId] will contain the new frame
+#' @return "numpy.ndarray"
 #' @export
 #'
-cv2rInputSnap <- function(session, inputId, crop = list(x=0,y=0,w=-1,h=-1)) {
-  session$sendCustomMessage("video_snap", crop)
+#' @examples
+#' 
+#' if (interactive()) {
+#' 
+#'     l_imge <- capture()
+#' 
+#' }
+#' 
+capture <- function(width=320, height=240, encoding = "image/jpeg", quality = 0.9) {
+  l_output <- NULL
+  l_app <- shiny::shinyApp(ui = shiny::fluidPage(inputCv2Cam("picture", width = width, height, encoding = encoding, quality = quality ), shiny::tags$button(
+    id="capture", class = "btn btn-primary action-button", 
+    onclick = "setTimeout(function(){window.close();},500);",  "Capture" ) 
+    ), 
+    server = function(input, output, session) { shiny::observeEvent(input$capture, ignoreInit = T, ignoreNULL = T, { l_output <<- input$picture ; shiny::stopApp()  })  } )
+  
+  # if desktop app, run in a browser window
+  if (Sys.getenv("RSTUDIO_HTTP_REFERER") == "")
+    shiny::runApp(l_app, launch.browser = T)
+  else
+    shiny::runGadget(l_app)
+  
+  return(l_output)
 }
 
 # convert base64 string into an OpenCV Mat (numpy.ndarray)
@@ -220,7 +259,11 @@ cv2rInputSnap <- function(session, inputId, crop = list(x=0,y=0,w=-1,h=-1)) {
 #
 # @return
 base64img2ndarray <- function(data, ...) {
-  l_png <- base64enc::base64decode(what = data)
-  l_mat <- cv2r$imdecode(reticulate::np_array(as.integer(l_png), dtype = "uint8"), -1L)
+
+  l_array <- base64enc::base64decode(data)
+  l_array <- np$frombuffer(l_array, dtype = np$uint8)  
+  
+  l_mat <- cv2r$imdecode(l_array, -1L)
+  
   l_mat
 }

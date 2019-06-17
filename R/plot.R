@@ -24,7 +24,14 @@ imread <- function(filename, flags=-1L) {
         l_tmpfile <- normalizePath(filename)
     }
         
-    cv2r$imread(l_tmpfile, flags)
+    l_out <- cv2r$imread(l_tmpfile, flags)
+    
+    if (length(l_out$shape) == 3)
+        attr(l_out, "colorspace") <- "BGR"
+    else
+        attr(l_out, "colorspace") <- "GRAY"
+    
+    l_out
 }
 
 #' Overload of OpenCV imshow to make it compatible with RStudio server and Shiny
@@ -45,11 +52,41 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
 
     # Clean input types
     
-    if ( ! "numpy.ndarray" %in% class(mat) )
-        l_mat <- reticulate::np_array(data = mat, dtype = "uint8")
-    else
-        l_mat <- mat
+    # prototype is compatible with python, but fix most frequent mistake
+    if (missing( mat ))
+        mat <- winname
     
+    # Convert from not displayable types
+    if ( inherits(mat, "array" ) || inherits(mat, "matrix") ) {
+        l_mat <- reticulate::np_array(data = mat, dtype = "uint8")
+    } else if ( inherits(mat, "numpy.ndarray") ) {
+        if (mat$dtype == "uint8")
+            l_mat <- mat
+        else if (mat$dtype == "bool") {
+            l_mat <- mat$`__mul__`(255L)$astype("uint8")
+            attr(l_mat, "colorspace") <- attr(mat, "colorspace") 
+        } else {
+            cat("forcing dtype to uint8 when displaying from ", as.character(mat$dtype), "\n")
+            l_mat <- mat$astype("uint8")
+            attr(l_mat, "colorspace") <- attr(mat, "colorspace") 
+        }
+            
+    } else {
+        return(NULL)
+    }
+    
+    # convert color spaces
+    if ( ! is.null( attr(l_mat, "colorspace") ) ) {
+        if ( ! attr(l_mat, "colorspace") %in% c("GREY", "BGR", "BGRA") ) {
+            if (length(l_mat$shape) == 3 && l_mat$shape[2] == 4)
+                l_mat <- cv2r$cvtColor(l_mat, cv2r[[paste0("COLOR_",attr(l_mat, "colorspace"),"2BGRA")]])
+            if (length(l_mat$shape) == 3 && l_mat$shape[2] == 3)
+                l_mat <- cv2r$cvtColor(l_mat, cv2r[[paste0("COLOR_",attr(l_mat, "colorspace"),"2BGR")]])
+            if (length(l_mat$shape) == 3 && l_mat$shape[2] == 2)
+                warning("Unsuported number of color channel")
+        }
+    }
+        
     if ( keep_shape ) {
         l_shape <- unlist(reticulate::py_to_r(l_mat$shape))[1:2]
         l_ratio <- max(l_shape[1:2] / c(render_max_h, render_max_w))
@@ -61,14 +98,14 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     render_max_h <- as.integer(render_max_h)
     
     if ( render_max_h < l_shape[[1]] || render_max_w < l_shape[[2]] ) {
-        mat <- cv2r$resize(src=mat, dsize=reticulate::tuple(render_max_w,render_max_h))
+        l_mat <- cv2r$resize(src=l_mat, dsize=reticulate::tuple(render_max_w,render_max_h))
     }
     
     l_b64img <- base64enc::base64encode(
-        reticulate::py_to_r(cv2r$imencode(img=mat, ext=".png"))[[2]])
+        reticulate::py_to_r(cv2r$imencode(img=l_mat, ext=".png"))[[2]])
     
     l_data <- list(
-        list(id=winname, scale = scale, type="data:image/png;base64", data=l_b64img) 
+        list(id=runif(1), winname=winname, scale = scale, type="data:image/png;base64", data=l_b64img) 
     )
     
     l_out <- r2d3::r2d3(data=l_data, script = system.file("simple_png_view.js", package = "cv2r"))
@@ -82,6 +119,36 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     }
 }
 
+#' @export
+`cvtColor<-` <- function(mat, value) { 
+    l_from <- cvtColor(mat)
+    l_to <- value
+    l_trans <- paste0("COLOR_",l_from,"2",l_to)
+    
+    if ( ! l_trans %in% cv2r_colors ) {
+        warning("Unable to find convertion function: ", l_trans)
+        l_ret <- mat
+    } else {
+        l_ret <- cv2r$cvtColor(mat, cv2r[[l_trans]])
+        attr(l_ret, "colorspace") <- l_to
+    }
+    return(l_ret)
+}
+
+#' @export    
+cvtColor <- function(mat) {
+    l_cspace <- attr(mat, 'colorspace')
+    
+    if ( is.null(l_cspace) )
+        if ( length(mat$shape) == 3) 
+            l_ret <- "BGR"
+        else
+            l_ret <- "GREY"
+    else
+        l_ret <- l_cspace
+    
+    return(l_ret)
+}
 
 #' print an image from OpenCV 
 #'
@@ -95,11 +162,10 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
 #' 
 print.numpy.ndarray <- function(x, ...) {
     mat = x
-    cat("Python ndarray: shape=")
+    cat("Python ndarray: colorspace=",attr(x, "colorspace")," shape= ")
     print(mat$shape)
     
     if ( length(mat$shape) == 3 && reticulate::py_to_r(mat$shape)[[3]] %in% c(1,3,4) ) {
-        print(imshow(mat = mat))
         invisible(print(imshow(mat = mat)))
     } else if ( length(mat$shape) == 2 ) {
         print(imshow(mat = mat))

@@ -1,17 +1,13 @@
 library(shiny)
 library(cv2r)
 
-if ( cv2_available()) {
-    ui <- fluidPage(
-        includeScript(system.file("OggVorbisEncoder.min.js", package = "cv2r")),
-        inputCv2Cam("video", audio = T, fps = 1),
-        cv2Output(outputId = "zoom"),
-        textOutput("level"),
-        actionButton(inputId = "snap", label = "Snap"),
-        actionButton(inputId = "audio_snap", label = "Snap Audio"),
-        plotlyOutput("plot"),
-        sliderInput("level", label = "seuil", min = 0, max = 1, step = 0.1, value = 0.3)
-    )
+
+if ( cv2_available() ) {
+    ui <- fluidPage(fluidRow(
+        column(4,inputCv2Cam("video")),
+        column(4,cv2Output(outputId = "zoom")),
+        column(4,cv2Output(outputId = "border"))
+    ))
     
     server <- function(input, output, session) {
         
@@ -31,18 +27,16 @@ if ( cv2_available()) {
         })
         
         output$zoom <- renderCv2({
-            img <- input$video
-            
-            if (is.null(img))
-                return(NULL)
-            
-            imshow("id", input$video) })
+            input$video[100:200,120:280]
+        })
         
+        output$border <- renderCv2({
+            cv2r$Canny(input$video, 10L, 50L)
+        })
     }
     
-    shinyApp(ui, server)
+    if (interactive()) {
+        shinyApp(ui, server)
+    }
     
 }
-
-
-
