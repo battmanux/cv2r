@@ -80,7 +80,7 @@ inputCv2Cam <- function(inputId,
                         width=320, height=240, fps=15, 
                         show_live=T, show_captured = F, 
                         select_cam = "default",
-                        auto_send_video = F, 
+                        auto_send_video = T, 
                         auto_send_audio = T,
                         audio_buff_size = 4096,
                         encoding = "image/jpeg", quality = 0.9,
@@ -105,12 +105,15 @@ inputCv2Cam <- function(inputId,
         l_go_bt,
         shiny::tags$video(id=inputId, width=width, height=height, autoplay="", muted="", style=if (!show_live) "display:none;" else ""),
         shiny::tags$canvas(id="canvas", width=width, height=height, style=if (!show_captured) "display:none;" else ""),
+        includeScript(path = system.file('lame.all.js', package = "cv2r")),
         shiny::tags$script(shiny::HTML(paste0('
 audioCtx = new AudioContext();
 scriptNode = audioCtx.createScriptProcessor(',audio_buff_size,', 1, 1);
 video = document.getElementById("',inputId,'"); // video is the id of video tag
 canvas = document.getElementById("canvas") 
-gAudioBuffer = [];
+//gAudioBuffer = [];
+
+var mp3encoder = new lamejs.Mp3Encoder(1, 44100, 64); 
 
 function _arrayBufferToBase64( buffer ) {
     var binary = "";
@@ -122,25 +125,44 @@ function _arrayBufferToBase64( buffer ) {
     return window.btoa( binary );
 }
 
+var gFrameOn = 0;
+
 scriptNode.onaudioprocess = function(audioProcessingEvent) {
     arrayBufferIn = audioProcessingEvent.inputBuffer.getChannelData(0);
     arrayBufferOut = audioProcessingEvent.outputBuffer.getChannelData(0)
     
-    base64buff = _arrayBufferToBase64(arrayBufferIn.buffer);
-  
-    Shiny.onInputChange("',inputId,'_audio", base64buff );
-  
-    if ( gAudioBuffer.length > 0 ) {
-
-      for (var sample = 0; sample < gAudioBuffer.length; sample++) {
-        // make output equal to the same as the input
-        arrayBufferOut[sample] = gAudioBuffer[sample];
-      }
-
-      gAudioBuffer = [];
+    var min = Math.min.apply(null, arrayBufferIn);
+    var max = Math.max.apply(null, arrayBufferIn);
+    
+    if ( min < 0.1 && max > 0.1 ) {
+      gFrameOn = 2;
     }
     
+    if ( gFrameOn == 0 ) {
+      Shiny.onInputChange("',inputId,'_audio", "" );
     }
+    else if ( gFrameOn > 0 ) {
+      gFrameOn -= 1;
+      
+       for(var i=0;i<arrayBufferIn.length;i++) {
+          arrayBufferIn[i] = arrayBufferIn[i]*32767.5;
+      }
+      
+      var lBuff = [];
+      var mp3Tmp = mp3encoder.encodeBuffer(arrayBufferIn); //encode mp3
+      lBuff.push(new Int8Array(mp3Tmp) );
+      mp3Tmp = mp3encoder.flush();
+      lBuff.push(new Int8Array(mp3Tmp) );
+
+      var c = new Int8Array(lBuff[0].length + lBuff[1].length);
+      c.set(lBuff[0]);
+      c.set(lBuff[1], lBuff[0].length);
+
+      var base64buff = _arrayBufferToBase64(c.buffer);
+      Shiny.onInputChange("',inputId,'_audio", base64buff );
+    }
+    
+  }
 
 
 start = function(){
