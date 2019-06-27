@@ -1,7 +1,7 @@
 library(shiny)
 library(cv2r)
 library(ggplot2)
-
+library(bioacoustics)
 
 if ( cv2_available() ) {
     ui <- fluidPage(fluidRow(

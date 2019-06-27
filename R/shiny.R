@@ -105,7 +105,7 @@ inputCv2Cam <- function(inputId,
         l_go_bt,
         shiny::tags$video(id=inputId, width=width, height=height, autoplay="", muted="", style=if (!show_live) "display:none;" else ""),
         shiny::tags$canvas(id="canvas", width=width, height=height, style=if (!show_captured) "display:none;" else ""),
-        includeScript(path = system.file('lame.all.js', package = "cv2r")),
+        includeScript(path = system.file('lame.all.js', package = "cv2r", mustWork = T)),
         shiny::tags$script(shiny::HTML(paste0('
 audioCtx = new AudioContext();
 scriptNode = audioCtx.createScriptProcessor(',audio_buff_size,', 1, 1);
