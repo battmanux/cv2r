@@ -86,9 +86,14 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
                 warning("Unsuported number of color channel")
         }
     }
-        
+    
+    l_shape <- unlist(reticulate::py_to_r(l_mat$shape))[1:2]
+    
+    # protect against empty uimages
+    if ( min(l_shape) == 0 )
+        l_mat <- reticulate::np_array(data = matrix(c(100,155,100,155,100,155,100,155,100), nrow = 3), dtype = "uint8")
+    
     if ( keep_shape ) {
-        l_shape <- unlist(reticulate::py_to_r(l_mat$shape))[1:2]
         l_ratio <- max(l_shape[1:2] / c(render_max_h, render_max_w))
         render_max_h <- floor(l_shape / l_ratio)[1]
         render_max_w <- floor(l_shape / l_ratio)[2]
@@ -109,6 +114,9 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     )
     
     l_out <- r2d3::r2d3(data=l_data, script = system.file("simple_png_view.js", package = "cv2r"))
+    # transparent background
+    l_out$x$theme$runtime$background <- NULL
+    l_out$x$theme$default$background <- NULL
 
     # knitr does not call print from a python chunk
     if ( "options" %in% names(sys.frames()[[1]]) &&
