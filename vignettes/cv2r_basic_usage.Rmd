@@ -57,13 +57,68 @@ You can naturraly do your cv2 code in python
 ```{python}
 import cv2
 
-#help(cv2.blur)
-#print(r.my_image.shape)
-
 blured_img = cv2.blur(r.my_image, (100,100) )
 
 # We call the cv2r::imshow version to get the result in the markdown document
 r.imshow(mat=blured_img)
+
+```
+
+
+You can change the colorspace
+
+```{r}
+
+# change color space
+cvtColor(my_image) <- "HSV"
+
+# change Hue
+my_image[,,1] <- my_image[,,1]*2+50
+
+imshow(mat=my_image)
+```
+
+
+# Convert to data.table
+
+```{r}
+library(data.table)
+
+my_image <- imread(img_url)
+
+my_table <- as.data.table(my_image)
+
+summary(my_table)
+```
+
+So that you can do data science on pixels
+
+```{r}
+hist(my_table[layer==1, value])
+```
+
+Then change pixels and revert to image
+
+```{r}
+my_table[layer==1 & y > 10, value := value + y ]
+as.image(my_table)
+```
+
+If you need to put in a 3D space
+
+```{r}
+my_space <- dcast(my_table,  x + y ~ layer )
+
+pairs(my_space[sample.int(size = 100, n =  nrow(my_space)),.(R,G,B, A)])
+```
+
+Than you update values in 3D spaces
+
+```{r}
+
+my_space[R < 100 & G > 50, R:=200]
+
+as.image(melt(my_space, id.vars = c("x","y"), variable.name = "layer"))
 
 ```
 

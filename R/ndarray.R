@@ -331,6 +331,15 @@ as.data.table.numpy.ndarray <- function(x) {
     l_ret <- data.table::melt(reticulate::py_to_r(x)) 
     names(l_ret) <- c(c("x", "y", "layer")[seq_len(length(l_ret)-1)], "value")
     setDT(l_ret)
+    
+    if ( nchar(attr(x = x, which = "colorspace")) == 3 && py_to_r(x$shape[2]) == 4 ) 
+      attr(x = x, which = "colorspace") <- paste0(attr(x = x, which = "colorspace"), "A")
+    
+    if ( nchar(attr(x = x, which = "colorspace")) == py_to_r(x$shape[2]) ) {
+      l_labels <- strsplit(attr(x = x, which = "colorspace"), split = "")[[1]]
+      l_ret[,layer:=factor(layer, labels = l_labels)]
+    }
+    
     attr(x = l_ret, which = "colorspace") <- attr(x = x, which = "colorspace")
     l_ret
     }
@@ -349,10 +358,11 @@ as.image <- function(df, x.name = "x", y.name = "y", layer.name ="layer", value.
         setDT(df)
         l_filter <- unique(df[,get(layer.name)]) 
         l_mat <- array(0, dim = c(max(df[[x.name]]),max(df[[y.name]]),length(l_filter)))
-        for ( l in l_filter) {
-            l_f <-   dcast(df[get(layer.name)==l,.(x,y,value=get(value.name))], x ~ y, fill = 0)
+        for ( l in seq_along(levels(l_filter) ) ) {
+            l_f <-   dcast(df[get(layer.name)==levels(l_filter)[[l]],.(x,y,value=get(value.name))], x ~ y, fill = 0)
             l_f[,x := NULL]
-            l_mat[,,l] <- as.matrix(l_f)   
+            l_m <- as.matrix(l_f)   
+            l_mat[,,l] <- l_m   
         }
         
     } else {
