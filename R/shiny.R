@@ -12,10 +12,12 @@
 #' @example inst/examples/sampleApp.r
 #' 
 #' 
-cv2Output <- function (outputId, width = "320", height = "240px") 
+cv2Output <- function (outputId, width = "100%", height = "240px") 
 {
-  htmlwidgets::shinyWidgetOutput(outputId, "r2d3", width, 
+    div(style="margin-bottom:10px;",
+        htmlwidgets::shinyWidgetOutput(outputId, "r2d3", width, 
                                  height)
+    )
 }
   
 
