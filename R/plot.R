@@ -48,13 +48,23 @@ imread <- function(filename, flags=-1L) {
 #'
 #' @example inst/examples/plot.R
 #' 
-imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1000, keep_shape = T, scale = 1.0) {
+imshow <- function(winname="default", mat, 
+                   render_max_w = 1000, render_max_h = 1000, 
+                   keep_shape = T, scale = 1.0,
+                   backgroundcolor) {
 
     # Clean input types
     
     # prototype is compatible with python, but fix most frequent mistake
-    if (missing( mat ))
+    if (missing( mat )) {
         mat <- winname
+        winname <- "default"
+    }
+    
+    # convert data.table to image
+    if ( inherits(mat, "data.frame" ) ) {
+        mat <- as.image(mat)
+    }
     
     # Convert from not displayable types
     if ( inherits(mat, "array" ) || inherits(mat, "matrix") ) {
@@ -78,12 +88,25 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     # convert color spaces
     if ( ! is.null( attr(l_mat, "colorspace") ) ) {
         if ( ! attr(l_mat, "colorspace") %in% c("GREY", "BGR", "BGRA") ) {
-            if (length(l_mat$shape) == 3 && l_mat$shape[2] == 4)
-                l_mat <- cv2r$cvtColor(l_mat, cv2r[[paste0("COLOR_",attr(l_mat, "colorspace"),"2BGRA")]])
+            if (length(l_mat$shape) == 3 && l_mat$shape[2] == 4) {
+                l_convert <- paste0("COLOR_",attr(l_mat, "colorspace"),"2BGRA")
+                if (l_convert %in% names(cv2r)) {
+                    l_mat <- cv2r$cvtColor(l_mat, cv2r[[paste0("COLOR_",attr(l_mat, "colorspace"),"2BGRA")]])
+                } else {
+                    # report alpha layer
+                    l_mat_bgra <- l_mat$copy()
+                    l_mat_bgra[,,1:3] <- cv2r$cvtColor(l_mat[,,1:3], cv2r[[paste0("COLOR_",attr(l_mat, "colorspace"),"2BGR")]])
+                    l_mat_bgra[,,4] <- l_mat[,,4] 
+                    attr(l_mat_bgra, "colorspace") <- "BGRA"
+                    l_mat <- l_mat_bgra
+                }
+            }
             if (length(l_mat$shape) == 3 && l_mat$shape[2] == 3)
                 l_mat <- cv2r$cvtColor(l_mat, cv2r[[paste0("COLOR_",attr(l_mat, "colorspace"),"2BGR")]])
             if (length(l_mat$shape) == 3 && l_mat$shape[2] == 2)
                 warning("Unsuported number of color channel")
+        } else {
+
         }
     }
     
@@ -114,10 +137,16 @@ imshow <- function(winname="default", mat, render_max_w = 1000, render_max_h = 1
     )
     
     l_out <- r2d3::r2d3(data=l_data, script = system.file("simple_png_view.js", package = "cv2r"))
+    
     # transparent background
-    l_out$x$theme$runtime$background <- NULL
-    l_out$x$theme$default$background <- NULL
-
+    if (missing(backgroundcolor)) {
+        l_out$x$theme$runtime$background <- NULL
+        l_out$x$theme$default$background <- NULL
+    } else {
+        l_out$x$theme$runtime$background <- backgroundcolor
+        l_out$x$theme$default$background <- backgroundcolor
+    }
+    
     # knitr does not call print from a python chunk
     if ( "options" %in% names(sys.frames()[[1]]) &&
          sys.frames()[[1]]$options$engine == "python") {
@@ -153,7 +182,12 @@ cvtColor <- function(mat) {
         else
             l_ret <- "GREY"
     else
-        l_ret <- l_cspace
+        if ( l_cspace != "GREY" &&
+             length(mat$shape) == 3 && 
+             nchar(l_cspace) > py_to_r(mat$shape[2]) )
+            l_ret <- substr(l_cspace, 0, py_to_r(mat$shape[2]))
+        else
+            l_ret <- l_cspace
     
     return(l_ret)
 }

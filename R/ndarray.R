@@ -7,9 +7,9 @@ shift_by_one <- function(x, env) {
     l_ret <- ":"
   } else if (grepl(pattern = "^[0-9]*:[0-9]*$", x = xd) ) {
     # Faster version
-    l_ret <- paste(collapse  = ":", as.integer(strsplit(xd, ":")[[1]]) - 1)  
-    
-    
+    l_parts <- as.integer(strsplit(xd, ":")[[1]])
+    l_ret <- paste(l_parts[[1]] -1, l_parts[[2]], sep  = ":")  
+
   } else if (grepl(pattern = ":", x = xd) ) {
     
     l_args <- unlist(strsplit(xd, ":"))
@@ -328,48 +328,95 @@ hist.numpy.ndarray <- function(x, ...) { hist(reticulate::py_to_r(x, ...)) }
 
 #' @export
 as.data.table.numpy.ndarray <- function(x) { 
+    l_orig_colorspace <- attr(x = x, which = "colorspace")
     l_ret <- data.table::melt(reticulate::py_to_r(x)) 
-    names(l_ret) <- c(c("x", "y", "layer")[seq_len(length(l_ret)-1)], "value")
+    if ( length(names(l_ret)) == 3) {
+      l_orig_colorspace <- "V"
+      names(l_ret) <- c("x", "y", "value")
+    } else if ( length(names(l_ret)) == 4 ) {
+      names(l_ret) <- c("x", "y", "layer", "value")
+    } else {
+      names(l_ret) <- c(c("x", "y", "layer")[seq_len(length(l_ret)-1)], "value")
+    }
     setDT(l_ret)
     
-    if ( nchar(attr(x = x, which = "colorspace")) == 3 && py_to_r(x$shape[2]) == 4 ) 
-      attr(x = x, which = "colorspace") <- paste0(attr(x = x, which = "colorspace"), "A")
+    # Add alpha in colorspace if missing
+    if ( nchar(l_orig_colorspace) == 3 && py_to_r(x$shape[2]) == 4 ) 
+      attr(x = x, which = "colorspace") <- paste0(l_orig_colorspace, "A")
     
+    # Use letters of colorspace as layer labels
     if ( nchar(attr(x = x, which = "colorspace")) == py_to_r(x$shape[2]) ) {
       l_labels <- strsplit(attr(x = x, which = "colorspace"), split = "")[[1]]
       l_ret[,layer:=factor(layer, labels = l_labels)]
     }
     
+    # Convert to large table
+    l_ret <- dcast(l_ret,  x + y ~ layer )
+    
+    # report colorspace attr
     attr(x = l_ret, which = "colorspace") <- attr(x = x, which = "colorspace")
-    l_ret
+    setkeyv(x = l_ret, cols = c("x","y"))
+    return(l_ret)
     }
 
 #' @export
 as.data.frame.numpy.ndarray <- function(x) { 
-    l_ret <- data.table::melt(reticulate::py_to_r(x)) 
-    names(l_ret) <- c(c("x", "y", "layer")[seq_len(length(l_ret)-1)], "value")
-    attr(x = l_ret, which = "colorspace") <- attr(x = x, which = "colorspace")
-    l_ret
+    l_ret <- as.data.table.numpy.ndarray(x)
+    setDT(l_ret)
+    return(l_ret)
 }
 
 #' @export
-as.image <- function(df, x.name = "x", y.name = "y", layer.name ="layer", value.name = "value" ) {
-    if ( layer.name %in% names(df) ) {
-        setDT(df)
-        l_filter <- unique(df[,get(layer.name)]) 
-        l_mat <- array(0, dim = c(max(df[[x.name]]),max(df[[y.name]]),length(l_filter)))
-        for ( l in seq_along(levels(l_filter) ) ) {
-            l_f <-   dcast(df[get(layer.name)==levels(l_filter)[[l]],.(x,y,value=get(value.name))], x ~ y, fill = 0)
+as.image <- function(df) {
+    l_orig_colorspace <- attr(x = df, which = "colorspace")
+    setDT(df)
+    setkeyv(x = df, cols = c("x","y"))
+    
+    if (length(df) > 6) {
+      warning("Image table is too large, keeping only the first layers: ",
+              paste(names(df)[1:5], sep = "," ))
+      df <- df[,mget(names(df)[1:5])]
+    }
+    
+    # check for missing pixels
+    if ( df[,max(x)*max(y) ] > nrow(df) ) {
+      if ( ! 'A' %in% names(df) )
+        df[,A:=255] 
+      
+      xv <- rep(1:df[,max(x)], times=df[,max(y)])
+      yv <- rep(1:df[,max(y)], each=df[,max(x)])
+      
+      allpt <- data.table(x=xv, y=yv)
+      for ( l_n in names(df)) {
+        if (!l_n %in% names(allpt))
+          allpt[[l_n]] <- 0
+      }
+      allpt[,A:=0]
+        
+      l_missing_pt <- allpt[!df,,on=.(x,y)]
+      df <- rbindlist(list(df, l_missing_pt))
+    }
+    
+    if ( length(df) > 3 ) {
+        l_n <- names(df)
+        l_orig_colorspace <- paste0(l_n[!l_n %in% c("x","y", "A")], collapse = "")
+        df <- melt(df, id.vars = c("x","y"), variable.name = "layer")
+        l_filter <- levels(df$layer) 
+        l_mat <- array(0, dim = c(max(df[,x]),max(df[,y]),length(l_filter)))
+        for ( l in seq_along(l_filter) ) {
+            l_f <-   dcast(df[layer==l_filter[[l]],.(x,y,value)], x ~ y, fill = 0)
             l_f[,x := NULL]
             l_m <- as.matrix(l_f)   
             l_mat[,,l] <- l_m   
         }
         
     } else {
-        l_mat <- as.matrix(dcast(df, x ~ y, value.var = value.name ))   
+        l_mat <- as.matrix(dcast(df, x ~ y, value.var = names(df)[[length(df)]] ))
+        l_orig_colorspace <- "GREY"
     }
 
     l_ret <- reticulate::np_array(data = l_mat, dtype = "uint8")
-    attr(x = l_ret, which = "colorspace") <- attr(x = df, which = "colorspace")
+    attr(x = l_ret, which = "colorspace") <- l_orig_colorspace
     l_ret
 }
+

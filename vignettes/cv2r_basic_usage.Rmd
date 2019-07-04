@@ -94,31 +94,36 @@ summary(my_table)
 So that you can do data science on pixels
 
 ```{r}
-hist(my_table[layer==1, value])
+hist(my_table[, R])
 ```
 
 Then change pixels and revert to image
 
 ```{r}
-my_table[layer==1 & y > 10, value := value + y ]
-as.image(my_table)
+imshow(mat=my_table)
 ```
 
 If you need to put in a 3D space
 
 ```{r}
-my_space <- dcast(my_table,  x + y ~ layer )
-
-pairs(my_space[sample.int(size = 100, n =  nrow(my_space)),.(R,G,B, A)])
+pairs(my_table[sample.int(size = 100, n =  nrow(my_table)),.(R,G,B, A)])
 ```
 
 Than you update values in 3D spaces
 
 ```{r}
+my_table[R < 100 & G > 50, R:=200]
+imshow(mat=my_table)
+```
 
-my_space[R < 100 & G > 50, R:=200]
 
-as.image(melt(my_space, id.vars = c("x","y"), variable.name = "layer"))
+You can also remove points in any colorspace and plot the result with transparency
 
+```{r}
+# remove alpha before converting to HSV
+my_hsv_image <- my_image[,,1:3] 
+cvtColor(my_hsv_image) <- "HSV"
+my_hsv_table <- as.data.table(my_hsv_image)
+imshow(mat=my_hsv_table[V > 200 & V < 240,])
 ```
 
