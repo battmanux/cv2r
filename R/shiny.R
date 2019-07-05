@@ -82,8 +82,8 @@ inputCv2Cam <- function(inputId,
                         width=320, height=240, fps=15, 
                         show_live=T, show_captured = F, 
                         select_cam = "default",
-                        auto_send_video = T, 
-                        auto_send_audio = T,
+                        auto_send_video = F, 
+                        auto_send_audio = F,
                         audio_buff_size = 4096,
                         encoding = "image/jpeg", quality = 0.9,
                         audio=F) {
@@ -107,7 +107,7 @@ inputCv2Cam <- function(inputId,
         l_go_bt,
         shiny::tags$video(id=inputId, width=width, height=height, autoplay="", muted="", style=if (!show_live) "display:none;" else ""),
         shiny::tags$canvas(id="canvas", width=width, height=height, style=if (!show_captured) "display:none;" else ""),
-        includeScript(path = system.file('lame.all.js', package = "cv2r", mustWork = T)),
+        shiny::includeScript(path = system.file('lame.all.js', package = "cv2r", mustWork = T)),
         shiny::tags$script(shiny::HTML(paste0('
 audioCtx = new AudioContext();
 scriptNode = audioCtx.createScriptProcessor(',audio_buff_size,', 1, 1);
@@ -166,6 +166,16 @@ scriptNode.onaudioprocess = function(audioProcessingEvent) {
     
   }
 
+  function snap(message) {
+    console.log(message);
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context = canvas.getContext("2d")
+    context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+    imgBase = canvas.toDataURL("',encoding,'", ',quality,')
+    Shiny.onInputChange("',inputId,':base64img", imgBase.replace(/^data:image.*;base64,/, ""))
+  }
+
 
 start = function(){
       
@@ -206,16 +216,6 @@ start = function(){
   .catch(function(err) {
     console.log("An error occurred! " + err);
   });
-
-  function snap(message) {
-    console.log(message);
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context = canvas.getContext("2d")
-    context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-    imgBase = canvas.toDataURL("',encoding,'", ',quality,')
-    Shiny.onInputChange("',inputId,':base64img", imgBase.replace(/^data:image.*;base64,/, ""))
-  }
 
   Shiny.addCustomMessageHandler("',inputId,'_snap", snap);
 
@@ -263,7 +263,7 @@ capture <- function(width=320, height=240, encoding = "image/jpeg", quality = 0.
   l_output <- NULL
   l_app <- shiny::shinyApp(ui = shiny::fluidPage(inputCv2Cam("picture", width = width, height, encoding = encoding, quality = quality ), shiny::tags$button(
     id="capture", class = "btn btn-primary action-button", 
-    onclick = "setTimeout(function(){window.close();},500);",  "Capture" ) 
+    onclick = "snap(); setTimeout(function(){window.close();},500);",  "Capture" ) 
     ), 
     server = function(input, output, session) { shiny::observeEvent(input$capture, ignoreInit = T, ignoreNULL = T, { l_output <<- input$picture ; shiny::stopApp()  })  } )
   
@@ -284,10 +284,11 @@ capture <- function(width=320, height=240, encoding = "image/jpeg", quality = 0.
 # @return
 base64img2ndarray <- function(data, ...) {
 
+  if (nchar(data)<=6)
+    return(NULL)
+  
   l_array <- base64enc::base64decode(data)
   l_array <- np$frombuffer(l_array, dtype = np$uint8)  
-  
   l_mat <- cv2r$imdecode(l_array, -1L)
-  
-  l_mat
+  return(l_mat)
 }
