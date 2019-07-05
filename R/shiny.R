@@ -99,144 +99,79 @@ inputCv2Cam <- function(inputId,
   
     l_stream_audio <- ifelse(audio, "true", "false")
     if ( audio ) 
-      l_go_bt <- shiny::actionButton(inputId = "go", label = "Start Audio Feedback")
+      l_audio_scripts <- list(
+        shiny::tags$script(shiny::HTML(paste0(
+          "var audio_buff_size = ", audio_buff_size, "\n"))),
+        shiny::includeScript(path = system.file('lame.all.js', package = "cv2r", mustWork = T)), 
+        shiny::includeScript(path = system.file('cv2r_audio.js', package = "cv2r", mustWork = T))
+      )
     else
-      l_go_bt <- list()
+      l_audio_scripts <- list()
     
     shiny::div(
-        l_go_bt,
-        shiny::tags$video(id=inputId, width=width, height=height, autoplay="", muted="", style=if (!show_live) "display:none;" else ""),
+      shiny::tags$script(shiny::HTML(paste(
+        "var inputId         = '"        ,inputId, "';\n"
+      , collapse = "", sep = ""))),
+      l_audio_scripts,
+        shiny::tags$video(id=inputId,
+                          width=width, height=height, 
+                          autoplay="", muted="", 
+                          style=if (!show_live) "display:none;" else "-moz-transform: scale(-1, 1); 
+-webkit-transform: scale(-1, 1); -o-transform: scale(-1, 1); transform: scale(-1, 1); filter: FlipH;"),
         shiny::tags$canvas(id="canvas", width=width, height=height, style=if (!show_captured) "display:none;" else ""),
-        shiny::includeScript(path = system.file('lame.all.js', package = "cv2r", mustWork = T)),
         shiny::tags$script(shiny::HTML(paste0('
-audioCtx = new AudioContext();
-scriptNode = audioCtx.createScriptProcessor(',audio_buff_size,', 1, 1);
 video = document.getElementById("',inputId,'"); // video is the id of video tag
 canvas = document.getElementById("canvas") 
-//gAudioBuffer = [];
 
-var mp3encoder = new lamejs.Mp3Encoder(1, 44100, 64); 
-
-function _arrayBufferToBase64( buffer ) {
-    var binary = "";
-    var bytes = new Uint8Array( buffer );
-    var len = bytes.byteLength;
-    for (var i = 0; i < len; i++) {
-        binary += String.fromCharCode( bytes[ i ] );
-    }
-    return window.btoa( binary );
+function snap(message) {
+  console.log(message);
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  context = canvas.getContext("2d")
+  context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+  imgBase = canvas.toDataURL("',encoding,'", ',quality,')
+  Shiny.onInputChange("',inputId,':base64img", imgBase.replace(/^data:image.*;base64,/, ""))
 }
 
-var gFrameOn = 0;
 
-scriptNode.onaudioprocess = function(audioProcessingEvent) {
-    arrayBufferIn = audioProcessingEvent.inputBuffer.getChannelData(0);
-    arrayBufferOut = audioProcessingEvent.outputBuffer.getChannelData(0)
-    
-    var min = Math.min.apply(null, arrayBufferIn);
-    var max = Math.max.apply(null, arrayBufferIn);
-    
-    if ( min < 0.1 && max > 0.1 ) {
-      gFrameOn = 2;
-    }
-    
-    if ( gFrameOn == 0 ) {
-      Shiny.onInputChange("',inputId,'_audio", "" );
-    }
-    else if ( gFrameOn > 0 ) {
-      gFrameOn -= 1;
-      
-       for(var i=0;i<arrayBufferIn.length;i++) {
-          arrayBufferIn[i] = arrayBufferIn[i]*32767.5;
-      }
-      
-      var lBuff = [];
-      var mp3Tmp = mp3encoder.encodeBuffer(arrayBufferIn); //encode mp3
-      lBuff.push(new Int8Array(mp3Tmp) );
-      mp3Tmp = mp3encoder.flush();
-      lBuff.push(new Int8Array(mp3Tmp) );
+constraint = { video: { width: ',width,', height: ',height,' ',cam_mode,' }', ifelse(audio, ', audio: true }', '}'), '
 
-      var c = new Int8Array(lBuff[0].length + lBuff[1].length);
-      c.set(lBuff[0]);
-      c.set(lBuff[1], lBuff[0].length);
-
-      var base64buff = _arrayBufferToBase64(c.buffer);
-      Shiny.onInputChange("',inputId,'_audio", base64buff );
-    }
-    
-  }
-
-  function snap(message) {
-    console.log(message);
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context = canvas.getContext("2d")
-    context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-    imgBase = canvas.toDataURL("',encoding,'", ',quality,')
-    Shiny.onInputChange("',inputId,':base64img", imgBase.replace(/^data:image.*;base64,/, ""))
-  }
-
-
-start = function(){
-      
-  constraint = { video: { width: ',width,', height: ',height,' ',cam_mode,' }', ifelse(audio, ', audio: true }', '}'), '
+count = 0;    
+navigator.mediaDevices.enumerateDevices().then(function(mediaDevices) { 
+mediaDevices.forEach(mediaDevice => {
+  if (mediaDevice.kind === "videoinput") {
+      count += 1 
+  } } ) ; 
+} ) 
   
-  count = 0;    
-  navigator.mediaDevices.enumerateDevices().then(function(mediaDevices) { 
-  mediaDevices.forEach(mediaDevice => {
-    if (mediaDevice.kind === "videoinput") {
-        count += 1 
-    } } ) ; 
-    console.log(count) } ) 
-    
-  if ( count == 1) {
-    constraint["video"]["facingMode"] = "default";
-  }
-    
-  navigator.mediaDevices.getUserMedia(constraint)
-  .then(function(stream) {
-    
-    ',ifelse(!audio, '', '
-  go.addEventListener("click", function() {
-    if ( video.muted == false ) 
-      video.muted = true;
-    else
-      video.muted = false;
-  });
+if ( count == 1) {
+  constraint["video"]["facingMode"] = "default";
+}
   
-    microphone = audioCtx.createMediaStreamSource(stream);
- 
-    microphone.connect(scriptNode);
-    scriptNode.connect(audioCtx.destination);
-    '),'
-    video.srcObject = stream;
-
-    video.play();
-  })
-  .catch(function(err) {
-    console.log("An error occurred! " + err);
-  });
-
-  Shiny.addCustomMessageHandler("',inputId,'_snap", snap);
-
-  function audio_play(message) {
+navigator.mediaDevices.getUserMedia(constraint)
+.then(function(stream) {
   
-  }
+  ',ifelse(!audio, '', '
+  microphone = audioCtx.createMediaStreamSource(stream);
 
-  Shiny.addCustomMessageHandler("',inputId,'_audio_play", audio_play);
+  microphone.connect(scriptNode);
+  scriptNode.connect(audioCtx.destination);
+  '),'
+  video.srcObject = stream;
 
-  auto_send_video = ',ifelse(auto_send_video,"true", "false") ,';
+  video.play();
+})
+.catch(function(err) {
+  console.log("An error occurred! " + err);
+});
 
-  if ( auto_send_video ) {
-    setInterval(snap, ',as.integer(1000/fps),');
-  }
+Shiny.addCustomMessageHandler("',inputId,'_snap", snap);
 
-};
+auto_send_video = ',ifelse(auto_send_video,"true", "false") ,';
 
-
-
-  start();
-
+if ( auto_send_video ) {
+  setInterval(snap, ',as.integer(1000/fps),');
+}
 ', collapse = "")))
     )
 }
@@ -261,9 +196,13 @@ start = function(){
 #' 
 capture <- function(width=320, height=240, encoding = "image/jpeg", quality = 0.9) {
   l_output <- NULL
-  l_app <- shiny::shinyApp(ui = shiny::fluidPage(inputCv2Cam("picture", width = width, height, encoding = encoding, quality = quality ), shiny::tags$button(
-    id="capture", class = "btn btn-primary action-button", 
-    onclick = "snap(); setTimeout(function(){window.close();},500);",  "Capture" ) 
+  l_app <- shiny::shinyApp(
+    ui = shiny::fluidPage(
+      inputCv2Cam("picture", width = width, height,
+                  encoding = encoding, quality = quality ), 
+      shiny::tags$button(
+        id="capture", class = "btn btn-primary action-button", 
+        onclick = "snap(); setTimeout(function(){window.close();},500);",  "Capture" ) 
     ), 
     server = function(input, output, session) { shiny::observeEvent(input$capture, ignoreInit = T, ignoreNULL = T, { l_output <<- input$picture ; shiny::stopApp()  })  } )
   

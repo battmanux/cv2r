@@ -5,7 +5,7 @@ library(bioacoustics)
 
 if ( cv2_available() ) {
     ui <- fluidPage(fluidRow(
-        column(3,inputCv2Cam("video", auto_send_video = F, audio = T, audio_buff_size = 4096*4)),
+        column(3,inputCv2Cam("video", auto_send_video = F, auto_send_audio = T, audio = T, audio_buff_size = 4096*4)),
         column(3,plotOutput(outputId = "plot")),
         column(3,cv2Output(outputId = "zoom")),
         column(3,cv2Output(outputId = "border"))
