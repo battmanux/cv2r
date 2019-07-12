@@ -124,7 +124,6 @@ video = document.getElementById("',inputId,'"); // video is the id of video tag
 canvas = document.getElementById("canvas") 
 
 function snap(message) {
-  console.log(message);
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   context = canvas.getContext("2d")
