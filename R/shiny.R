@@ -204,7 +204,7 @@ capture <- function(width=320, height=240, flip = T,
   l_output <- NULL
   l_app <- shiny::shinyApp(
     ui = shiny::fluidPage(
-      inputCv2Cam("picture", width = width, height,
+      inputCv2Cam("picture", width = width, height, flip = flip,
                   encoding = encoding, quality = quality,  ), 
       shiny::tags$button(
         id="capture", class = "btn btn-primary action-button", 

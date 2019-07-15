@@ -317,14 +317,13 @@ max.numpy.ndarray <- function(x) x$max()
 #' @export
 min.numpy.ndarray <- function(x) x$min()
 
-#' @export median numpy.ndarray 
+#' @export
 median.numpy.ndarray <- function(x) median(reticulate::py_to_r(x))
 
 #' @export
 hist.numpy.ndarray <- function(x, ...) { hist(reticulate::py_to_r(x, ...)) }
 
-#' @method MyHappyFunction lm
-#' @export as.data.table numpy.ndarray 
+#' @export
 as.data.table.numpy.ndarray <- function(x) { 
     l_orig_colorspace <- attr(x = x, which = "colorspace")
     l_ret <- data.table::melt(reticulate::py_to_r(x)) 
