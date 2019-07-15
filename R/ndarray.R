@@ -317,16 +317,14 @@ max.numpy.ndarray <- function(x) x$max()
 #' @export
 min.numpy.ndarray <- function(x) x$min()
 
-#' @export
+#' @export median numpy.ndarray 
 median.numpy.ndarray <- function(x) median(reticulate::py_to_r(x))
-
-#' @export
-sd.numpy.ndarray <- function(x) x$std()
 
 #' @export
 hist.numpy.ndarray <- function(x, ...) { hist(reticulate::py_to_r(x, ...)) }
 
-#' @export
+#' @method MyHappyFunction lm
+#' @export as.data.table numpy.ndarray 
 as.data.table.numpy.ndarray <- function(x) { 
     l_orig_colorspace <- attr(x = x, which = "colorspace")
     l_ret <- data.table::melt(reticulate::py_to_r(x)) 
@@ -341,11 +339,11 @@ as.data.table.numpy.ndarray <- function(x) {
     setDT(l_ret)
     
     # Add alpha in colorspace if missing
-    if ( nchar(l_orig_colorspace) == 3 && py_to_r(x$shape[2]) == 4 ) 
+    if ( nchar(l_orig_colorspace) == 3 && reticulate::py_to_r(x$shape[2]) == 4 ) 
       attr(x = x, which = "colorspace") <- paste0(l_orig_colorspace, "A")
     
     # Use letters of colorspace as layer labels
-    if ( nchar(attr(x = x, which = "colorspace")) == py_to_r(x$shape[2]) ) {
+    if ( nchar(attr(x = x, which = "colorspace")) == reticulate::py_to_r(x$shape[2]) ) {
       l_labels <- strsplit(attr(x = x, which = "colorspace"), split = "")[[1]]
       l_ret[,layer:=factor(layer, labels = l_labels)]
     }
