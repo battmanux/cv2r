@@ -235,5 +235,6 @@ base64img2ndarray <- function(data, ...) {
   l_array <- base64enc::base64decode(data)
   l_array <- np$frombuffer(l_array, dtype = np$uint8)  
   l_mat <- cv2r$imdecode(l_array, -1L)
+  attr(l_mat, "colorspace") <- "BGR"
   return(l_mat)
 }
