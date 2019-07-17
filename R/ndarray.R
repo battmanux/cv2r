@@ -1,4 +1,4 @@
-
+#' @import data.table
 
 shift_by_one <- function(x, env) {
   xd <- deparse(x)
