@@ -68,6 +68,7 @@ renderCv2 <- function (expr, mat, env = parent.frame(), quoted = FALSE)
 #' @param show_live  Shall we show webcam stream
 #' @param show_captured  Shall we show the captured image
 #' @param select_cam  Prefered camera on smartphone (user or environment, default)
+#' @param flip do we show a mirrored version of the picture in live feedback
 #' @param auto_send_video Send video picture every fps
 #' @param auto_send_audio Send audio buffer every audio_buff_size
 #' @param encoding Picture encoding over HTTP
@@ -82,6 +83,7 @@ inputCv2Cam <- function(inputId,
                         width=320, height=240, fps=15, 
                         show_live=T, show_captured = F, 
                         select_cam = "default",
+                        flip = F,
                         auto_send_video = F, 
                         auto_send_audio = F,
                         audio_buff_size = 4096,
@@ -108,23 +110,24 @@ inputCv2Cam <- function(inputId,
     else
       l_audio_scripts <- list()
     
+    l_flip_style <- "-moz-transform: scale(-1, 1); 
+-webkit-transform: scale(-1, 1); -o-transform: scale(-1, 1); transform: scale(-1, 1); filter: FlipH;"
+    
     shiny::div(
       shiny::tags$script(shiny::HTML(paste(
-        "var inputId         = '"        ,inputId, "';\n"
+        "var inputId         = '" ,inputId, "';\n"
       , collapse = "", sep = ""))),
       l_audio_scripts,
         shiny::tags$video(id=inputId,
                           width=width, height=height, 
                           autoplay="", muted="", 
-                          style=if (!show_live) "display:none;" else "-moz-transform: scale(-1, 1); 
--webkit-transform: scale(-1, 1); -o-transform: scale(-1, 1); transform: scale(-1, 1); filter: FlipH;"),
+                          style=if (!show_live) "display:none;" else if ( flip == T ) l_flip_style else "" ),
         shiny::tags$canvas(id="canvas", width=width, height=height, style=if (!show_captured) "display:none;" else ""),
         shiny::tags$script(shiny::HTML(paste0('
 video = document.getElementById("',inputId,'"); // video is the id of video tag
 canvas = document.getElementById("canvas") 
 
 function snap(message) {
-  console.log(message);
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   context = canvas.getContext("2d")
@@ -180,6 +183,7 @@ if ( auto_send_video ) {
 #'
 #' @param width    Width of the captured image
 #' @param height   Height of the captured image
+#' @param flip do we show a mirrored version of the picture in live feedback
 #' @param encoding Picture encoding over HTTP
 #' @param quality  Encoding quality (if encoding = image/jpeg)
 #'
@@ -194,12 +198,14 @@ if ( auto_send_video ) {
 #' 
 #' }
 #' 
-capture <- function(width=320, height=240, encoding = "image/jpeg", quality = 0.9) {
+capture <- function(width=320, height=240, flip = T,
+                    encoding = "image/jpeg", 
+                    quality = 0.9) {
   l_output <- NULL
   l_app <- shiny::shinyApp(
     ui = shiny::fluidPage(
-      inputCv2Cam("picture", width = width, height,
-                  encoding = encoding, quality = quality ), 
+      inputCv2Cam("picture", width = width, height, flip = flip,
+                  encoding = encoding, quality = quality,  ), 
       shiny::tags$button(
         id="capture", class = "btn btn-primary action-button", 
         onclick = "snap(); setTimeout(function(){window.close();},500);",  "Capture" ) 
