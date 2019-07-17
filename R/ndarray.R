@@ -328,7 +328,7 @@ hist.numpy.ndarray <- function(x, ...) { hist(reticulate::py_to_r(x, ...)) }
 
 #' @export
 as.data.table.numpy.ndarray <- function(x) { 
-    l_orig_colorspace <- attr(x = x, which = "colorspace")
+    l_orig_colorspace <- cvtColor(x)
     l_ret <- data.table::melt(reticulate::py_to_r(x)) 
     if ( length(names(l_ret)) == 3) {
       l_orig_colorspace <- "V"
@@ -383,8 +383,10 @@ as.image <- function(df) {
       if ( ! 'A' %in% names(df) )
         df[,A:=255] 
       
-      xv <- rep(1:df[,max(x)], times=df[,max(y)])
-      yv <- rep(1:df[,max(y)], each=df[,max(x)])
+      xv <- rep(1:(df[,max(x)-min(x)]), times=df[,max(y)-min(y)] )
+      yv <- rep(1:(df[,max(y)-min(y)]), each=df[,max(x)-min(x)] )
+      df[,x:=x-min(x)+1]
+      df[,y:=y-min(y)+1]
       
       allpt <- data.table(x=xv, y=yv)
       for ( l_n in names(df)) {
@@ -406,7 +408,7 @@ as.image <- function(df) {
         for ( l in seq_along(l_filter) ) {
             l_f <-   dcast(df[layer==l_filter[[l]],.(x,y,value)], x ~ y, fill = 0)
             l_f[,x := NULL]
-            l_m <- as.matrix(l_f)   
+            l_m <- as.matrix(l_f)
             l_mat[,,l] <- l_m   
         }
         
@@ -419,4 +421,3 @@ as.image <- function(df) {
     attr(x = l_ret, which = "colorspace") <- l_orig_colorspace
     l_ret
 }
-
