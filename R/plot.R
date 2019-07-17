@@ -184,8 +184,8 @@ cvtColor <- function(mat) {
     else
         if ( l_cspace != "GREY" &&
              length(mat$shape) == 3 && 
-             nchar(l_cspace) > py_to_r(mat$shape[2]) )
-            l_ret <- substr(l_cspace, 0, py_to_r(mat$shape[2]))
+             nchar(l_cspace) > reticulate::py_to_r(mat$shape[2]) )
+            l_ret <- substr(l_cspace, 0, reticulate::py_to_r(mat$shape[2]))
         else
             l_ret <- l_cspace
     

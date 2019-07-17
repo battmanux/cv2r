@@ -141,7 +141,7 @@ extend.shape <- function(a, b) {
             
             if ( length(a$shape) == 3 && length(b$shape) == 2)  {
                 
-                for ( i in seq_len(py_to_r(a$shape[2]) )) {
+                for ( i in seq_len(reticulate::py_to_r(a$shape[2]) )) {
                     l_out[,,i] <- b
                 }
                 
@@ -152,7 +152,7 @@ extend.shape <- function(a, b) {
                 
             } else if ( length(a$shape) == 3 && length(b$shape) == 3 && a$shape[2] > b$shape[2]) {
                 
-                for ( i in seq_len(py_to_r(a$shape[2]))) {
+                for ( i in seq_len(reticulate::py_to_r(a$shape[2]))) {
                     warning("Only first layer is used in mathematical operation")
                     l_out[,,i] <- b[,,1]
                 }
@@ -344,7 +344,8 @@ as.data.table.numpy.ndarray <- function(x) {
     # Use letters of colorspace as layer labels
     if ( nchar(attr(x = x, which = "colorspace")) == reticulate::py_to_r(x$shape[2]) ) {
       l_labels <- strsplit(attr(x = x, which = "colorspace"), split = "")[[1]]
-      l_ret[,layer:=factor(layer, labels = l_labels)]
+      #l_ret[,layer:=factor(layer, labels = l_labels)]
+      l_ret$layer<-factor(l_ret$layer, labels = l_labels)
     }
     
     # Convert to large table
