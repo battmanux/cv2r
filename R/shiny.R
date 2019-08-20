@@ -88,7 +88,8 @@ inputCv2Cam <- function(inputId,
                         auto_send_audio = F,
                         audio_buff_size = 4096,
                         encoding = "image/jpeg", quality = 0.9,
-                        audio=F) {
+                        audio=F,
+                        overlay_svg) {
   
   if (select_cam == "default") {
     cam_mode  <- ""
@@ -118,14 +119,33 @@ inputCv2Cam <- function(inputId,
         "var inputId         = '" ,inputId, "';\n"
       , collapse = "", sep = ""))),
       l_audio_scripts,
+      shiny::tags$div(
+        shiny::tags$div(id=paste0(inputId, "_overlay"), class="cv2r_input_overlay",
+                        style=paste0("position: absolute; z-index:1; width:", width, "px; height:",height,"px;" ),
+                        includeHTML(overlay_svg)),
         shiny::tags$video(id=inputId,
                           width=width, height=height, 
-                          autoplay="", muted="", 
-                          style=if (!show_live) "display:none;" else if ( flip == T ) l_flip_style else "" ),
+                          autoplay="", muted="", class="cv2r_input_video",
+                          style=if (!show_live) "display:none;" else if ( flip == T ) l_flip_style else "" )
+        ),
         shiny::tags$canvas(id="canvas", width=width, height=height, style=if (!show_captured) "display:none;" else ""),
         shiny::tags$script(shiny::HTML(paste0('
 video = document.getElementById("',inputId,'"); // video is the id of video tag
-canvas = document.getElementById("canvas") 
+canvas = document.getElementById("canvas") ;
+
+v=$("#"+inputId+"_overlay svg")[0];
+v.setAttribute("width", "',width,'");
+v.setAttribute("height", "',height,'");
+
+$(v.children[0].children).each(function(){
+        if ( (""+$(this).attr(\'id\')).startsWith("linkToSvg_") ) {
+        var href = $(this).attr(\'id\').replace("linkToSvg_", "");
+        $(this).bind("click", function() {
+         Shiny.setInputValue(inputId+"_load_svg", href);  
+        })
+  
+        }
+          });
 
 function snap(message) {
   canvas.width = video.videoWidth;
@@ -200,17 +220,27 @@ if ( auto_send_video ) {
 #' 
 capture <- function(width=320, height=240, flip = T,
                     encoding = "image/jpeg", 
-                    quality = 0.9) {
+                    quality = 0.9,
+                    overlay_svg) {
   l_output <- NULL
   l_app <- shiny::shinyApp(
     ui = shiny::fluidPage(
       inputCv2Cam("picture", width = width, height, flip = flip,
-                  encoding = encoding, quality = quality,  ), 
+                  encoding = encoding, quality = quality, overlay_svg = overlay_svg ), 
       shiny::tags$button(
         id="capture", class = "btn btn-primary action-button", 
         onclick = "snap(); setTimeout(function(){window.close();},500);",  "Capture" ) 
     ), 
-    server = function(input, output, session) { shiny::observeEvent(input$capture, ignoreInit = T, ignoreNULL = T, { l_output <<- input$picture ; shiny::stopApp()  })  } )
+    server = function(input, output, session) { 
+      shiny::observeEvent(
+        input$capture, ignoreInit = T, ignoreNULL = T, 
+        { l_output <<- input$picture ; shiny::stopApp()  }
+        )  
+      shiny::observeEvent(input$picture_load_svg, ignoreNULL = T, ignoreInit = T, {
+        shiny::removeUI("#picture_overlay svg", immediate = T)
+        shiny::insertUI("#picture_overlay", ui = shiny::HTML(readLines(input$picture_load_svg)))
+      })
+      } )
   
   # if desktop app, run in a browser window
   if (Sys.getenv("RSTUDIO_HTTP_REFERER") == "")
