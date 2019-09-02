@@ -16,7 +16,7 @@ cv2r_colors <- character(0)
     # load cv2 without convertion and assign it to the package env and GlobalEnv
     cv2r <<- reticulate::import("cv2", convert = F, delay_load = T)
     base64 <<- reticulate::import("base64", convert = F)
-    np <<-     reticulate::import("numpy", convert = F)
+    # np <<-     reticulate::import("numpy", convert = F)
     
     l_colors <- names(cv2r)
     cv2r_colors <<- l_colors[grepl("^COLOR_", l_colors)]
