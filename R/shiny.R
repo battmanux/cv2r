@@ -151,6 +151,7 @@ capture <- function(width=320, height=240, encoding = "image/jpeg", quality = 0.
 base64img2ndarray <- function(data, ...) {
 
   l_array <- base64enc::base64decode(data)
+  np      <- reticulate::import("numpy", convert = F)
   l_array <- np$frombuffer(l_array, dtype = np$uint8)  
   
   l_mat <- cv2r$imdecode(l_array, -1L)
