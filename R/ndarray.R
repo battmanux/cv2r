@@ -343,7 +343,7 @@ as.data.table.numpy.ndarray <- function(x) {
     
     # Use letters of colorspace as layer labels
     if ( nchar(l_orig_colorspace) == reticulate::py_to_r(x$shape[2]) ) {
-      l_labels <- strsplit(attr(x = x, which = "colorspace"), split = "")[[1]]
+      l_labels <- strsplit(l_orig_colorspace, split = "")[[1]]
       #l_ret[,layer:=factor(layer, labels = l_labels)]
       l_ret$layer<-factor(l_ret$layer, labels = l_labels)
     }
