@@ -342,7 +342,7 @@ as.data.table.numpy.ndarray <- function(x) {
       attr(x = x, which = "colorspace") <- paste0(l_orig_colorspace, "A")
     
     # Use letters of colorspace as layer labels
-    if ( nchar(attr(x = x, which = "colorspace")) == reticulate::py_to_r(x$shape[2]) ) {
+    if ( nchar(l_orig_colorspace) == reticulate::py_to_r(x$shape[2]) ) {
       l_labels <- strsplit(attr(x = x, which = "colorspace"), split = "")[[1]]
       #l_ret[,layer:=factor(layer, labels = l_labels)]
       l_ret$layer<-factor(l_ret$layer, labels = l_labels)
@@ -399,7 +399,8 @@ as.image <- function(df) {
     
     if ( length(df) > 3 ) {
         l_n <- names(df)
-        l_orig_colorspace <- paste0(l_n[!l_n %in% c("x","y", "A")], collapse = "")
+        l_orig_colorspace <- paste0(l_n[!l_n %in% c("x","y")], collapse = "")
+        if ( endsWith(l_orig_colorspace, "A") ) l_orig_colorspace <- gsub("A$", "", l_orig_colorspace)
         df <- melt(df, id.vars = c("x","y"), variable.name = "layer")
         l_filter <- levels(df$layer) 
         l_mat <- array(0, dim = c(max(df[,x]),max(df[,y]),length(l_filter)))
