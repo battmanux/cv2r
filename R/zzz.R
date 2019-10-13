@@ -12,6 +12,14 @@ np <- NULL
 cv2r_colors <- character(0)
 
 .onLoad <- function(libname, pkgname) {
+    if ( ! file.exists("/usr/bin/python3"))
+        stop("cv2r is tested with python3 only!")
+    
+    Sys.setenv(RETICULATE_PYTHON = "/usr/bin/python3")
+    l_cfg <- reticulate::py_discover_config()
+    if ( ! grepl(pattern = "python3", l_cfg[1]) ) {
+        stop("you must use pyhton3! restart R and reload cv2r")
+    }
     
     # load cv2 without convertion and assign it to the package env and GlobalEnv
     cv2r <<- reticulate::import("cv2", convert = F, delay_load = T)
@@ -27,7 +35,7 @@ cv2r_colors <- character(0)
     })
     
     if ( length(find.package("shiny", quiet = T)) == 1 ) {
-        shiny::registerInputHandler("base64img", base64img2ndarray, force = TRUE)
+        shiny::registerInputHandler("base64img", as.numpy.ndarray.base64img, force = TRUE)
     } else {
         warning("shiny is not installed. Make sure you reload R after shiny installation.")
     }

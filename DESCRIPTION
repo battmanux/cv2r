@@ -1,6 +1,6 @@
 Package: cv2r
 Title: Use OpenCV in RStudio 
-Version: 0.5.9
+Version: 0.6.1
 Author: Emmanuel BATT [aut, cre]
 Maintainer: Emmanuel BATT <emmanuel.batt.cran@battfamily.fr>
 Authors@R: person("Emmanuel", "BATT", email = "emmanuel.batt.cran@battfamily.fr", role = c("aut", "cre"))
@@ -17,9 +17,9 @@ Imports:
     curl (>= 3.2),
     base64enc (>= 0.1-3),
     data.table (>= 1.11.8),
-    reticulate (>= 1.10)
+    reticulate (>= 1.10),
+    htmlwidgets (>= 1.3)
 Suggests:
     shiny(>= 1.1.0),
-    htmlwidgets (>= 1.3),
     knitr, rmarkdown
 RoxygenNote: 6.1.1

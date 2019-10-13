@@ -12,14 +12,18 @@
 #' @example inst/examples/sampleApp.r
 #' 
 #' 
-cv2Output <- function (outputId, width = "100%", height = "240px") 
+cv2Output <- function (outputId, width = "100%", height = "240px", use_svg = FALSE) 
 {
-    div(style="margin-bottom:10px;",
-        htmlwidgets::shinyWidgetOutput(outputId, "r2d3", width, 
-                                 height)
-    )
+  if ( use_svg == TRUE) {
+    l_ret <-  div(style="margin-bottom:10px;",
+                  htmlwidgets::shinyWidgetOutput(outputId, l_type , width, 
+                                                 height))
+  } else {
+    l_ret <- base64imgOutput(outputId, width = width, height = height)
+  }
+   
+  l_ret 
 }
-  
 
 imshow_decorator <- quote({ lf_out <- function() { } ; imshow(mat=lf_out()) }  )
 
@@ -34,11 +38,12 @@ imshow_decorator <- quote({ lf_out <- function() { } ; imshow(mat=lf_out()) }  )
 #' 
 #' @example inst/examples/sampleApp.r
 #'  
-renderCv2 <- function (expr, mat, env = parent.frame(), quoted = FALSE) 
+renderCv2 <- function (expr, mat, env = parent.frame(), quoted = FALSE, use_svg=FALSE) 
 {
+
   
   if (missing(expr) && !missing(mat)) {
-    htmlwidgets::shinyRenderWidget(imshow(mat = mat), r2d3::d3Output, env, quoted = FALSE)
+    lOutput <- htmlwidgets::shinyRenderWidget(imshow(mat = mat, use_svg = use_svg), lOutput, env, quoted = FALSE)
   } else {
     
     if (!quoted) {
@@ -51,9 +56,14 @@ renderCv2 <- function (expr, mat, env = parent.frame(), quoted = FALSE)
       expr <- l_fun
     }
     
-    htmlwidgets::shinyRenderWidget(expr, r2d3::d3Output, env, quoted = TRUE)
+    if (use_svg == TRUE) {
+      lOutput <- htmlwidgets::shinyRenderWidget(expr, r2d3::d3Output , env, quoted = TRUE)
+    } else {
+      lOutput <- htmlwidgets::shinyRenderWidget(expr, base64imgOutput, env, quoted = TRUE)
+    }
+   
   }
-  
+  lOutput
 }
 
 
@@ -113,6 +123,11 @@ inputCv2Cam <- function(inputId,
     
     l_flip_style <- "-moz-transform: scale(-1, 1); 
 -webkit-transform: scale(-1, 1); -o-transform: scale(-1, 1); transform: scale(-1, 1); filter: FlipH;"
+    if ( missing(overlay_svg)) {
+      l_overlay <- shiny::HTML("<svg/>")  
+    } else {
+      l_overlay <- includeHTML(overlay_svg)
+    }
     
     shiny::div(
       shiny::tags$script(shiny::HTML(paste(
@@ -122,9 +137,9 @@ inputCv2Cam <- function(inputId,
       shiny::tags$div(
         shiny::tags$div(id=paste0(inputId, "_overlay"), class="cv2r_input_overlay",
                         style=paste0("position: absolute; z-index:1; width:", width, "px; height:",height,"px;" ),
-                        includeHTML(overlay_svg)),
+                        l_overlay),
         shiny::tags$video(id=inputId,
-                          width=width, height=height, 
+                          width="100%", height="100%", 
                           autoplay="", muted="", class="cv2r_input_video",
                           style=if (!show_live) "display:none;" else if ( flip == T ) l_flip_style else "" )
         ),
@@ -133,27 +148,40 @@ inputCv2Cam <- function(inputId,
 video = document.getElementById("',inputId,'"); // video is the id of video tag
 canvas = document.getElementById("canvas") ;
 
-v=$("#"+inputId+"_overlay svg")[0];
-v.setAttribute("width", "',width,'");
-v.setAttribute("height", "',height,'");
-
-$(v.children[0].children).each(function(){
-        if ( (""+$(this).attr(\'id\')).startsWith("linkToSvg_") ) {
-        var href = $(this).attr(\'id\').replace("linkToSvg_", "");
-        $(this).bind("click", function() {
-         Shiny.setInputValue(inputId+"_load_svg", href);  
-        })
+function update_overlay(inputId) {
+  v=$("#"+inputId+"_overlay svg");
+  if ( v.length > 0 )  {
+    overlay = v[0];
+  }
+  overlay.setAttribute("width", "',width,'");
+  overlay.setAttribute("height", "',height,'");
   
-        }
-          });
+  if ( overlay.children.length > 0) {
+    $(overlay.children[0].children).each(function(){
+            if ( (""+$(this).attr(\'id\')).startsWith("linkToSvg_") ) {
+            var href = $(this).attr(\'id\').replace("linkToSvg_", "");
+            $(this).bind("click", function() {
+             Shiny.setInputValue(inputId+"_load_svg", href);  
+            })
+      
+            }
+    });
+  
+  }
+  
+}
+
+update_overlay("',inputId,'");
 
 function snap(message) {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-  context = canvas.getContext("2d")
-  context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-  imgBase = canvas.toDataURL("',encoding,'", ',quality,')
-  Shiny.onInputChange("',inputId,':base64img", imgBase.replace(/^data:image.*;base64,/, ""))
+  context = canvas.getContext("2d");
+  if (message.width == 0) message.width = video.videoWidth;
+  if (message.height == 0) message.height = video.videoHeight;
+  context.drawImage(video, message.left, message.top, message.width, message.height);
+  imgBase = canvas.toDataURL("',encoding,'", ',quality,');
+  Shiny.onInputChange("',inputId,':base64img", { "data": imgBase.replace(/^data:image.*;base64,/, ""), "type": imgBase.replace(/^data:image.(.*);base64,.*/, "$1"), "height":video.videoHeight, "width":video.videoWidth} );
 }
 
 
@@ -197,6 +225,12 @@ if ( auto_send_video ) {
 }
 ', collapse = "")))
     )
+}
+
+#' @export
+inputCv2CamSnap <- function(session = session, inputId, top=0, left=0, width=0, height=0) {
+  session$sendCustomMessage(paste0(inputId, "_snap"), 
+                                   list(left=left,top=top,width=width,height=height))
 }
 
 #' Capture picture from webcam
@@ -249,22 +283,4 @@ capture <- function(width=320, height=240, flip = T,
     shiny::runGadget(l_app)
   
   return(l_output)
-}
-
-# convert base64 string into an OpenCV Mat (numpy.ndarray)
-#
-# @param data base64 string
-# @param ... 
-#
-# @return
-base64img2ndarray <- function(data, ...) {
-
-  if (nchar(data)<=6)
-    return(NULL)
-  
-  l_array <- base64enc::base64decode(data)
-  l_array <- np$frombuffer(l_array, dtype = np$uint8)  
-  l_mat <- cv2r$imdecode(l_array, -1L)
-  attr(l_mat, "colorspace") <- "BGR"
-  return(l_mat)
 }

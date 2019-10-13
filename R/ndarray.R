@@ -420,3 +420,11 @@ as.image <- function(df) {
     attr(x = l_ret, which = "colorspace") <- l_orig_colorspace
     l_ret
 }
+
+#' @export
+dim.numpy.ndarray <- function(mat, ...) {
+  l_ret <- reticulate::py_to_r(mat$shape)
+  if (length(l_ret) == 3)
+    names(l_ret) <- c("height", "width", "layers")
+  l_ret
+}

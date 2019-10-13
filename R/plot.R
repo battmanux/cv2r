@@ -34,6 +34,7 @@ imread <- function(filename, flags=-1L) {
     l_out
 }
 
+
 #' Overload of OpenCV imshow to make it compatible with RStudio server and Shiny
 #'
 #' @param winname Image identifyer
@@ -51,8 +52,73 @@ imread <- function(filename, flags=-1L) {
 imshow <- function(winname="default", mat, 
                    render_max_w = 1000, render_max_h = 1000, 
                    keep_shape = T, scale = 1.0,
-                   backgroundcolor) {
+                   backgroundcolor, use_svg=FALSE) {
+    
+    
+    if ( inherits(mat, "base64img") ) {
+        l_b64img <- mat
+    } else {
+        l_b64img <- as.base64img(mat = mat,
+                                 render_max_w = render_max_w, 
+                                 render_max_h = render_max_h, 
+                                 keep_shape = keep_shape,
+                                 scale = scale )   
+    }
+    
+    
+    if (use_svg == TRUE) {
+        l_data <- list(
+            list(id=runif(1), winname=winname, scale = scale, type=l_b64img$type, data=l_b64img$data) 
+        )
+        
+        l_out <- r2d3::r2d3(data=l_data, script = system.file("simple_png_view.js", package = "cv2r"))
+        
+        # transparent background
+        if (missing(backgroundcolor)) {
+            l_out$x$theme$runtime$background <- NULL
+            l_out$x$theme$default$background <- NULL
+        } else {
+            l_out$x$theme$runtime$background <- backgroundcolor
+            l_out$x$theme$default$background <- backgroundcolor
+        }
+    } else {
+        l_out <- plot( l_b64img )
+    }
+    
+    # knitr does not call print from a python chunk
+    if ( "options" %in% names(sys.frames()[[1]]) &&
+         sys.frames()[[1]]$options$engine == "python") {
+        print(l_out)
+    } else {
+        l_out
+    }
+}
 
+
+# convert base64 string into an OpenCV Mat (numpy.ndarray)
+#
+# @param data base64 string
+# @param ... 
+#
+# @return
+#'@export
+as.numpy.ndarray.base64img <- function(base64img, ...) {
+
+    if (is.null(names(base64img)) ||  ! "data" %in% names(base64img))
+        return(NULL)
+    
+    l_array <- base64enc::base64decode(base64img$data)
+    l_array <- np$frombuffer(l_array, dtype = np$uint8)  
+    l_mat <- cv2r$imdecode(l_array, -1L)
+    attr(l_mat, "colorspace") <- "BGR"
+    return(l_mat)
+}
+
+#' @export 
+as.base64img <- function(mat, 
+                      render_max_w = 1000, render_max_h = 1000, 
+                      keep_shape = T, scale = 1.0) {
+    
     # Clean input types
     
     # prototype is compatible with python, but fix most frequent mistake
@@ -80,7 +146,7 @@ imshow <- function(winname="default", mat,
             l_mat <- mat$astype("uint8")
             attr(l_mat, "colorspace") <- attr(mat, "colorspace") 
         }
-            
+        
     } else {
         return(NULL)
     }
@@ -106,13 +172,13 @@ imshow <- function(winname="default", mat,
             if (length(l_mat$shape) == 3 && l_mat$shape[2] == 2)
                 warning("Unsuported number of color channel")
         } else {
-
+            
         }
     }
     
     l_shape <- unlist(reticulate::py_to_r(l_mat$shape))[1:2]
     
-    # protect against empty uimages
+    # protect against empty images
     if ( min(l_shape) == 0 )
         l_mat <- reticulate::np_array(data = matrix(c(100,155,100,155,100,155,100,155,100), nrow = 3), dtype = "uint8")
     
@@ -131,30 +197,32 @@ imshow <- function(winname="default", mat,
     
     l_b64img <- base64enc::base64encode(
         reticulate::py_to_r(cv2r$imencode(img=l_mat, ext=".png"))[[2]])
-    
-    l_data <- list(
-        list(id=runif(1), winname=winname, scale = scale, type="data:image/png;base64", data=l_b64img) 
+    l_ret <- list(
+        data=l_b64img, 
+        type="png", 
+        height=reticulate::py_to_r(l_mat$shape[[0]]), 
+        width=reticulate::py_to_r(l_mat$shape[[1]])
     )
-    
-    l_out <- r2d3::r2d3(data=l_data, script = system.file("simple_png_view.js", package = "cv2r"))
-    
-    # transparent background
-    if (missing(backgroundcolor)) {
-        l_out$x$theme$runtime$background <- NULL
-        l_out$x$theme$default$background <- NULL
-    } else {
-        l_out$x$theme$runtime$background <- backgroundcolor
-        l_out$x$theme$default$background <- backgroundcolor
-    }
-    
-    # knitr does not call print from a python chunk
-    if ( "options" %in% names(sys.frames()[[1]]) &&
-         sys.frames()[[1]]$options$engine == "python") {
-        print(l_out)
-    } else {
-        l_out
-    }
+    class(l_ret) <- "base64img"
+    l_ret
 }
+ 
+base64imgOutput <- function(outputId, height = "100%", width="100%" ) {
+  htmlwidgets::createWidget(
+    'cv2rplotimg',
+    list(),
+    elementId = outputId,
+    sizingPolicy = htmlwidgets::sizingPolicy(
+      viewer.padding = 0,
+      viewer.paneHeight = height,
+      viewer.defaultWidth = width,
+      browser.padding	= 0,
+      browser.fill = TRUE
+    ),
+    dependencies = htmltools::htmlDependency(
+      'cv2rplotimg', '0.1', src = c(href = '')))
+}
+
 
 #' @export
 `cvtColor<-` <- function(mat, value) { 
@@ -203,18 +271,15 @@ cvtColor <- function(mat) {
 #' @example inst/examples/plot.R
 #' 
 print.numpy.ndarray <- function(x, ...) {
-    mat = x
+
     cat("Python ndarray: colorspace=",attr(x, "colorspace")," shape= ")
-    print(mat$shape)
+    print(x$shape)
     
-    if ( length(mat$shape) == 3 && reticulate::py_to_r(mat$shape)[[3]] %in% c(1,3,4) ) {
-        invisible(print(imshow(mat = mat)))
-    } else if ( length(mat$shape) == 2 ) {
-        print(imshow(mat = mat))
-        NextMethod()
-    }else
-        NextMethod()
-    
+    if ( length(dim(x)) == 2 || 
+         ( length(dim(x)) == 3 && dim(x)$layers %in% c(1,3,4) ) )
+      invisible(print(imshow(mat = x)))
+    else
+      NextMethod()
 }
 
 
@@ -227,9 +292,10 @@ print.numpy.ndarray <- function(x, ...) {
 #' @example inst/examples/plot.R
 #' 
 #' @export
-plot.numpy.ndarray <- function(mat) {
-    if ( length(mat$shape) == 2 || ( length(mat$shape) == 3 &&reticulate::py_to_r(mat$shape)[[3]] %in% c(1,3,4) ) )
-        invisible(print(imshow(mat = mat)))
+plot.numpy.ndarray <- function(x, ...) {
+    if ( length(dim(x)) == 2 || 
+         ( length(dim(x)) == 3 && dim(x)$layers %in% c(1,3,4) ) )
+        invisible(print(imshow(mat = x)))
     else
         NextMethod()
 }

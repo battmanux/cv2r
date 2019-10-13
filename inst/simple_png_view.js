@@ -5,7 +5,7 @@ var l = data.length;
 
 svg.selectAll('image')
   .data(data, function(d) {return d.id}).enter().append('image')
-  .attr("xlink:href",  function(d) { return d.type+","+d.data } )
+  .attr("xlink:href",  function(d) { return "data:image/"+d.type+";base64,"+d.data } )
   .attr("x", function(d, i) { return i * width / l  } )
   .attr("y", function(d, i) { return 0  } )
   .attr("width", function(d, i) { return  d.scale * width / l  } )
