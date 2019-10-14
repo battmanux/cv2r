@@ -12,7 +12,7 @@ if ( cv2_available() ) {
                                auto_send_audio = T, audio = T, 
                                audio_buff_size = 4096*4)),
           column(3,plotOutput(outputId = "plot")),
-          column(3,cv2Output(outputId = "zoom", width = "100%")),
+          column(3,cv2Output(outputId = "zoom")),
           column(3,cv2Output(outputId = "border"))
     ),
     fluidRow(column(12, plotOutput(outputId = "fullplot"))))
@@ -59,7 +59,7 @@ if ( cv2_available() ) {
         
                 
         output$zoom <- renderCv2({
-            input$video[50:50,120:280]
+            input$video[5:200,5:200]
         }, use_svg = T)
         
         output$border <- renderCv2({
