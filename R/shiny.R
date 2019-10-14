@@ -174,12 +174,21 @@ function update_overlay(inputId) {
 update_overlay("',inputId,'");
 
 function snap(message) {
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  context = canvas.getContext("2d");
+  if ( message === undefined ) message = {"width":0, "height":0, "left":0, "top":0};
   if (message.width == 0) message.width = video.videoWidth;
   if (message.height == 0) message.height = video.videoHeight;
-  context.drawImage(video, message.left, message.top, message.width, message.height);
+
+  context = canvas.getContext("2d");
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+  var imageData = context.getImageData(message.left, message.top, message.width, message.height);
+
+  canvas.width = message.width;
+  canvas.height = message.height;
+  context.putImageData(imageData, 0, 0);
+
   imgBase = canvas.toDataURL("',encoding,'", ',quality,');
   Shiny.onInputChange("',inputId,':base64img", { "data": imgBase.replace(/^data:image.*;base64,/, ""), "type": imgBase.replace(/^data:image.(.*);base64,.*/, "$1"), "height":video.videoHeight, "width":video.videoWidth} );
 }

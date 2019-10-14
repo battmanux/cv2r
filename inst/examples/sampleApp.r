@@ -5,13 +5,14 @@ library(bioacoustics)
 
 if ( cv2_available() ) {
     ui <- fluidPage(fluidRow(
-        actionButton(inputId = "snap", label = "Take")),
+        actionButton(inputId = "snap", label = "Take"),
+        actionButton(inputId = "snap2", label = "Take2")),
         fluidRow(
           column(3,inputCv2Cam("video", auto_send_video = F, fps = 5,
                                auto_send_audio = T, audio = T, 
                                audio_buff_size = 4096*4)),
           column(3,plotOutput(outputId = "plot")),
-          column(3,cv2Output(outputId = "zoom")),
+          column(3,cv2Output(outputId = "zoom", width = "100%")),
           column(3,cv2Output(outputId = "border"))
     ),
     fluidRow(column(12, plotOutput(outputId = "fullplot"))))
@@ -51,9 +52,14 @@ if ( cv2_available() ) {
         observeEvent(input$snap, {
           inputCv2CamSnap(session, "video")
         })
+
+        observeEvent(input$snap2, {
+          inputCv2CamSnap(session, "video", top = 100, left = 100, width = 200, height = 100)
+        })
         
+                
         output$zoom <- renderCv2({
-            input$video[100:200,120:280]
+            input$video[50:50,120:280]
         }, use_svg = T)
         
         output$border <- renderCv2({
