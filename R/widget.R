@@ -34,12 +34,15 @@ renderBase64img <- function(expr, env = parent.frame(), quoted = FALSE) {
 }
 
 #' @export
-scene3d <- function(texture="") {
+scene3d <- function(texture="", gltf) {
     l_ret <- list(
         width=100,
         height=100,
         texture = texture
     )
+    
+    if ( ! missing(gltf) )
+        l_ret$gltf <- gltf
     
     class(l_ret) <- 'scene3d'
     l_ret

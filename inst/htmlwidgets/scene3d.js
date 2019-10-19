@@ -9,20 +9,29 @@ HTMLWidgets.widget({
           'geometry':null,
           'material':null,
           'mesh':null,
-          'controls':null
-      };
+          'controls':null,
+          'light':null,
+          'gltfloader':null
+          };
       
     return {
       renderValue: function(x) {
+        if ( typeof(scenes) === "undefined" ) {
+            scenes = [wg_data];
+        } else {
+            scenes.push(wg_data); 
+        }
         init(wg_data, el);
         animate(wg_data);
+        if ( x.gltf ) {
+          loadGltf(wg_data, x.gltf);
+        }
       },
       resize: function(width, height) {
           wg_data.renderer.setSize( width, height );
           wg_data.camera.aspect = width / height;
           wg_data.camera.updateProjectionMatrix();
       },
-      wg_data: wg_data
     };
   }
 });
