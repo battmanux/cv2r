@@ -1,4 +1,4 @@
 dependencies:
   - name: base64img
     version: 1.0.0
-    src: htmlwidgets/lib/sigma-1.0.0
+    src: htmlwidgets/lib/base64img-1.0.0

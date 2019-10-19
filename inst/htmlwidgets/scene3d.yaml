@@ -1,0 +1,9 @@
+dependencies:
+  - name: scene3d
+    version: 0.1.0
+    src: htmlwidgets/lib/scene3d-0.1.0
+    script: 
+        - app.js
+        - three.min.js
+        - GLTFLoader.js
+        - controls/OrbitControls.js
