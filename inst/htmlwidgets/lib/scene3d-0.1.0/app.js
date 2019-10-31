@@ -7,13 +7,13 @@ function init(data, el) {
 	camera.position.z = 1;
 
 	scene = new THREE.Scene();
-  //geometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 );
+    geometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 );
 	
 	//texture = (new THREE.TextureLoader()).load('data/textures/wire_sd.png');
-  //material = new THREE.MeshBasicMaterial({map: texture});
-  material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: false });
+    //material = new THREE.MeshBasicMaterial({map: texture});
+    material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: false });
         
-	///mesh = new THREE.Mesh( geometry, material );
+	//mesh = new THREE.Mesh( geometry, material );
 	//scene.add( mesh );
 
     light = new THREE.HemisphereLight( 0xffffff, 0x444444 );
@@ -46,6 +46,7 @@ function init(data, el) {
   data.controls = controls;
   data.light    = light;
   data.gltfloader = new THREE.GLTFLoader();
+  data.objloader = new THREE.OBJLoader();
 }
 
 function linkToShiny() {
@@ -63,13 +64,19 @@ function addGround(data) {
 				new THREE.MeshPhongMaterial( { color: 0x444444, depthWrite: false } ) );
 	mesh2.rotation.x = - Math.PI / 2;
 	mesh2.receiveShadow = true;
-	scene.add( mesh2 );
+	data.scene.add( mesh2 );
 
 	var grid = new THREE.GridHelper( 1000, 10, 0x000000, 0x000000 );
 	grid.material.opacity = 0.2;
 	grid.material.transparent = true;
-	scene.add( grid );
+	data.scene.add( grid );
     
+}
+
+
+function loadObj(data, text) {
+    data.scene.add(
+        data.objloader.parse( text ) );
 }
 
 function loadGltf(data, json) {

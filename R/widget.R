@@ -34,15 +34,34 @@ renderBase64img <- function(expr, env = parent.frame(), quoted = FALSE) {
 }
 
 #' @export
-scene3d <- function(texture="", gltf) {
+scene3d <- function(gltf, obj, show_ground=TRUE) {
+    
     l_ret <- list(
         width=100,
         height=100,
-        texture = texture
+        texture = "",
+        show_ground=show_ground
     )
     
-    if ( ! missing(gltf) )
-        l_ret$gltf <- gltf
+    if (! missing(gltf) ) {
+        if (length(gltf) == 1 && nchar(gltf) < 300 && file.exists(gltf) ) {
+            l_file <- paste(readLines(gltf), sep = "", collapse = "\n")        
+        } else {
+            l_file <- gltf
+        }
+        
+        l_ret$gltf <- l_file
+    }
+    
+    if (! missing(obj) ) {
+        if (length(obj) == 1 && nchar(obj) < 300 && file.exists(obj) ) {
+            l_file <- paste(readLines(obj), sep = "", collapse = "\n")        
+        } else {
+            l_file <- obj
+        }
+        
+        l_ret$obj <- l_file
+    }
     
     class(l_ret) <- 'scene3d'
     l_ret
@@ -68,6 +87,28 @@ plot.scene3d <- function(scene3d,
     htmlwidgets::createWidget("scene3d", package = "cv2r",
                               x,  width = width, height = height, sizingPolicy = sizingPolicy)
 }
+#' 
+#' #' @export
+#' print.scene3d <- function(scene3d,
+#'                          width = NULL, height = NULL) {
+#'     
+#'     
+#'     # pass the data and settings using 'x'
+#'     x <- scene3d
+#'     
+#'     sizingPolicy <- htmlwidgets::sizingPolicy(
+#'         viewer.padding = 0,
+#'         viewer.paneHeight = 300,
+#'         viewer.defaultWidth = 300,
+#'         browser.padding	= 0,
+#'         browser.fill = TRUE
+#'     )
+#'     
+#'     # create the widget
+#'     htmlwidgets::createWidget("scene3d", package = "cv2r",
+#'                               x,  width = width, height = height, sizingPolicy = sizingPolicy)
+#' }
+
 
 #' @export
 scene3dOutput <- function(outputId, width = "100%", height = "400px") {

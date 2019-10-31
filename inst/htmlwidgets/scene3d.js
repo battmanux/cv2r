@@ -23,6 +23,11 @@ HTMLWidgets.widget({
         }
         init(wg_data, el);
         animate(wg_data);
+        if ( x.show_ground )
+            addGround(wg_data);
+        if ( x.obj ) {
+          loadObj(wg_data, x.obj);
+        }
         if ( x.gltf ) {
           loadGltf(wg_data, x.gltf);
         }

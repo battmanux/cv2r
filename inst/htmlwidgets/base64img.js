@@ -5,7 +5,7 @@ HTMLWidgets.widget({
     return {
       renderValue: function(x) {
         el.style.textAlign = "center";
-        txt = '<img style="max-height:100%; max-width:100%;" src="data:image/' 
+        txt = '<img style="max-height:100%; max-width:100%;" width="100%" height="100%" src="data:image/' 
                         + x.type + ';base64,' 
                         + x.data + '" />' ;
         el.innerHTML = txt;
