@@ -108,7 +108,13 @@ plot.scene3d <- function(scene3d,
 #'     htmlwidgets::createWidget("scene3d", package = "cv2r",
 #'                               x,  width = width, height = height, sizingPolicy = sizingPolicy)
 #' }
+#' 
 
+#' @export
+updateScene3d <- function(session, outputId, code, data=list()) {
+    code <- htmlwidgets::JS(code)
+    session$sendCustomMessage( paste0(outputId, "_", "execute"), list(code=code, data=data))
+}
 
 #' @export
 scene3dOutput <- function(outputId, width = "100%", height = "400px") {
