@@ -1,7 +1,3 @@
-var gWg = {};
-var gFrameOn = 0;
-var inputId = "";
-
 function _arrayBufferToBase64( buffer ) {
     var binary = "";
     var bytes = new Uint8Array( buffer );
@@ -12,46 +8,72 @@ function _arrayBufferToBase64( buffer ) {
     return window.btoa( binary );
 }
 
-function audioProcess(audioProcessingEvent) {
+function _base64ToArrayBuffer(base64) {
+    var binary_string = window.atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+function createAudioProcess(wg) {
+  return(function(audioProcessingEvent) {
     arrayBufferIn = audioProcessingEvent.inputBuffer.getChannelData(0);
     arrayBufferOut = audioProcessingEvent.outputBuffer.getChannelData(0);
+
+    //for(var i=0;i<arrayBufferOut.length;i++) {
+    //  arrayBufferOut[i] += arrayBufferIn[i];
+    //}
+    
+    if (wg.playbuffer.length > 0) {
+      l_buf = wg.playbuffer.pop();
+      var minLen = Math.min(l_buf.length, arrayBufferOut.length);
+      for(var i=0;i<minLen;i++) {
+        arrayBufferOut[i] += l_buf[i]/32767.5;
+      }
+    }
     
     var min = Math.min.apply(null, arrayBufferIn);
     var max = Math.max.apply(null, arrayBufferIn);
+    var mp3Tmp;
+    var base64buff;
     
     if ( min < 0.1 && max > 0.1 ) {
-      gFrameOn = 2;
+      if ( wg.gFrameOn <= 0 ) {
+        wg.gFrameOn = 2;
+      } else {
+        wg.gFrameOn += 1;
+      }
     }
+
+    wg.gFrameOn -= 1;
     
-    if ( gFrameOn === 0 ) {
-      Shiny.onInputChange(inputId+"_audio", "" );
+    if ( wg.gFrameOn === 0 ) {
+      // close file
+      mp3Tmp = wg.mp3encoder.flush();
+      base64buff = _arrayBufferToBase64(mp3Tmp);
+      Shiny.onInputChange(wg.inputId+"_audio:mp3base64", base64buff );
     }
-    else if ( gFrameOn > 0 ) {
-      gFrameOn -= 1;
-      
-       for(var i=0;i<arrayBufferIn.length;i++) {
-          arrayBufferIn[i] = arrayBufferIn[i]*32767.5;
+    else if ( wg.gFrameOn > 0 ) {
+      for(var i=0;i<arrayBufferIn.length;i++) {
+        arrayBufferIn[i] = arrayBufferIn[i]*32767.5;
       }
       
-      var lBuff = [];
-      var mp3Tmp = mp3encoder.encodeBuffer(arrayBufferIn); //encode mp3
-      lBuff.push(new Int8Array(mp3Tmp) );
-      mp3Tmp = mp3encoder.flush();
-      lBuff.push(new Int8Array(mp3Tmp) );
-
-      var c = new Int8Array(lBuff[0].length + lBuff[1].length);
-      c.set(lBuff[0]);
-      c.set(lBuff[1], lBuff[0].length);
-
-      var base64buff = _arrayBufferToBase64(c.buffer);
-      Shiny.onInputChange(inputId+"_audio", base64buff );
+      mp3Tmp = wg.mp3encoder.encodeBuffer(arrayBufferIn); //encode mp3
+      base64buff = _arrayBufferToBase64(mp3Tmp);
+      Shiny.onInputChange(wg.inputId+"_audio:mp3base64", base64buff );
+    } else {
+      
     }
+    
+  });
 }
          
 function update_overlay(wg, inputId, width, height) {
 
   var svg = wg.overlay.children[0];
-  
   
   svg.setAttribute("width", width);
   svg.setAttribute("height", height);
@@ -71,40 +93,53 @@ function update_overlay(wg, inputId, width, height) {
   
 }
 
-function snap(message) {
-    
-  if ( message === undefined ) message = {
-      "width":0,
-      "height":0,
-      "left":0,
-      "top":0, 
-      "encoding":"image/jpeg",
-      "quality":0.9,
-      "auto_send_video" : false
-      };
-      
-  if (message.width === 0) message.width = gWg.video.videoWidth;
-  if (message.height === 0) message.height = gWg.video.videoHeight;
+function createPlay(wg) {
+  return(function(message) {
+    var l_buf = _base64ToArrayBuffer(message.buffer);
+    var dataAsInt32Array = new Int32Array(l_buf);
+    var chunks = dataAsInt32Array.length / 4096;
+    for ( i=0; i<chunks; i+=1) {
+      wg.playbuffer.unshift(dataAsInt32Array.slice(4096*i,4096*(i+1)) );      
+    }
+  });
+}
 
-  var context = gWg.canvas.getContext("2d");
-
-  gWg.canvas.width = gWg.video.videoWidth;
-  gWg.canvas.height = gWg.video.videoHeight;
-  context.drawImage(gWg.video, 0, 0, gWg.video.videoWidth, gWg.video.videoHeight);
+function createSnap(wg) {
+  return(function(message) {
   
-  var imageData = context.getImageData(message.left, message.top, message.width, message.height);
-
-  gWg.canvas.width = message.width;
-  gWg.canvas.height = message.height;
-  context.putImageData(imageData, 0, 0);
-
-  var imgBase = gWg.canvas.toDataURL(message.encoding, message.quality);
-  Shiny.onInputChange(inputId+":base64img", {
-      "data":   imgBase.replace(/^data:image.*;base64,/, ""),
-      "type":   imgBase.replace(/^data:image.(.*);base64,.*/, "$1"), 
-      "height": gWg.video.videoHeight, 
-      "width":  gWg.video.videoWidth
-  } );
+    if ( message === undefined ) message = {
+        "width":0,
+        "height":0,
+        "left":0,
+        "top":0, 
+        "encoding":"image/jpeg",
+        "quality":0.9,
+        "auto_send_video" : false,
+        };
+    
+    if ( message.width === 0 ) message.width = wg.video.videoWidth;
+    if ( message.height === 0 ) message.height = wg.video.videoWidth;
+    
+    var context = wg.canvas.getContext("2d");
+  
+    wg.canvas.width = wg.video.videoWidth;
+    wg.canvas.height = wg.video.videoHeight;
+    context.drawImage(wg.video, 0, 0, wg.video.videoWidth, wg.video.videoHeight);
+    
+    var imageData = context.getImageData(message.left, message.top, message.width, message.height);
+  
+    wg.canvas.width = message.width;
+    wg.canvas.height = message.height;
+    context.putImageData(imageData, 0, 0);
+  
+    var imgBase = wg.canvas.toDataURL(message.encoding, message.quality);
+    Shiny.onInputChange(wg.inputId+":base64img", {
+        "data":   imgBase.replace(/^data:image.*;base64,/, ""),
+        "type":   imgBase.replace(/^data:image.(.*);base64,.*/, "$1"), 
+        "height": wg.video.videoHeight, 
+        "width":  wg.video.videoWidth
+    } );
+  });
 }
 
 function init_capture(wg, size, x) {
@@ -114,53 +149,63 @@ function init_capture(wg, size, x) {
       constraint.audio = true;
     }
     
-    count = 0;    
+    var count = 0;
+    wg.devices = [];
     navigator.mediaDevices.enumerateDevices().then(function(mediaDevices) { 
         mediaDevices.forEach(mediaDevice => {
           if (mediaDevice.kind === "videoinput") {
-              count += 1; 
+              count += 1;
+              wg.devices.push(mediaDevice.deviceId);
           } } ) ; 
+          
+          var reg = /^\d+$/;
+          if ( wg.devices.length === 1) {
+            constraint.video.facingMode = "default";
+          } else if ( wg.devices.length > 1 ) {
+            if ( reg.test(x.select_cam) ) {
+              constraint.video.deviceId = wg.devices[parseInt(x.select_cam)];
+            } else {
+              constraint.video.facingMode = x.select_cam;
+            }
+          } else {
+              console.log("No video available!");
+          }
+            
+          navigator.mediaDevices.getUserMedia(constraint).then(function(stream) {
+              
+            console.log("found video for "+wg.inputId);
+                
+            wg.video.srcObject = stream;
+            wg.video.onloadedmetadata = function(e) {
+              wg.video.play();
+              wg.video.muted = true;
+            };
+            
+            if (x.use_audio === true) {
+                console.log("audio for "+wg.inputId);
+                wg.audioCtx = new AudioContext();
+                wg.scriptNode = wg.audioCtx.createScriptProcessor(x.audio_buff_size*2, 1, 1);
+                wg.scriptNode.onaudioprocess =  createAudioProcess(wg);
+                wg.mp3encoder = new lamejs.Mp3Encoder(1, 44100, 128); 
+                var microphone = wg.audioCtx.createMediaStreamSource(stream);
+                microphone.connect(wg.scriptNode);
+                wg.scriptNode.connect(wg.audioCtx.destination);
+            }
+            
+          }).catch(function(err) {
+            console.log("An error occurred! " + err);
+          });
+          
+          if ( x.auto_send_video ) {
+            setInterval(snap, 1000 / x.fps);
+          }
     } );
-      
-    if ( count == 1) {
-      constraint.video.facingMode = "default";
-    } else if ( count > 1 ) {
-        constraint.video.facingMode = camera_mode;
-    } else {
-        console.log("No video available!");
-    }
-      
-    navigator.mediaDevices.getUserMedia(constraint).then(function(stream) {
-        
-        if (x.use_audio === true) {
-            var microphone = audioCtx.createMediaStreamSource(stream);
-            microphone.connect(wg.scriptNode);
-            scriptNode.connect(wg.audioCtx.destination);
-        }
-        
-      wg.video.srcObject = stream;
-      wg.video.play();
     
-    }).catch(function(err) {
-      console.log("An error occurred! " + err);
-    });
-    
-    if ( x.auto_send_video ) {
-      setInterval(snap, 1000 / x.fps);
-    }
 }
     
 function init(wg, size, x) {
     
     inputId = x.inputId;
-    gWg = wg;
-    
-    if ( x.audio === true ) {
-      wg.audioCtx = new AudioContext();
-      wg.scriptNode = audioCtx.createScriptProcessor(audio_buff_size, 1, 1);
-      wg.scriptNode.onaudioprocess =  audioProcess;
-      wg.mp3encoder = new lamejs.Mp3Encoder(1, 44100, 64); 
-    }
     
     wg.overlay = document.createElement("div");
     wg.overlay.id = x.inputId+"_overlay";
@@ -188,7 +233,7 @@ function init(wg, size, x) {
     }
     
     wg.video = document.createElement("video");
-    wg.video.id = inputId+"_video";
+    wg.video.id = x.inputId+"_video";
     wg.video.height = size.h;
     wg.video.width = size.w;
     wg.video.autoplay="";
@@ -197,7 +242,7 @@ function init(wg, size, x) {
     wg.video.style= l_style;
     
     wg.canvas = document.createElement("canvas");
-    wg.canvas.id = inputId+"_canvas";
+    wg.canvas.id = x.inputId+"_canvas";
     wg.canvas.height = size.h;
     wg.canvas.width = size.w;
     
@@ -205,10 +250,14 @@ function init(wg, size, x) {
       wg.canvas.style="display:none;";
     }
     
+    wg.playbuffer = [];
+    wg.snap = createSnap(wg);
+    wg.play = createPlay(wg);
+    
     if ( HTMLWidgets.shinyMode === true ) {
         init_capture(wg, size, x);
         update_overlay(wg, size.w, size.h );
-        Shiny.addCustomMessageHandler(inputId+'_snap', snap);
+        Shiny.addCustomMessageHandler(x.inputId+'_snap', wg.snap);
+        Shiny.addCustomMessageHandler(x.inputId+'_play', wg.play);
     }
-        
 }

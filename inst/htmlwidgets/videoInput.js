@@ -6,10 +6,20 @@ HTMLWidgets.widget({
     var wg = {
       video:null,
       canvas:null,
-      overlay:null
+      overlay:null,
+      gFrameOn: 0,
+      inputId : ""
     };
+
     return {
       renderValue: function(x) {
+        if ( typeof(wg_videoInput) === "undefined" ) {
+            wg_videoInput = {};
+        }
+        
+        wg.inputId = x.inputId;
+        wg_videoInput[x.inputId] = wg; 
+        
         el.style.textAlign = "center";
         
         size.h = x.height;

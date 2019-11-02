@@ -87,28 +87,13 @@ plot.scene3d <- function(scene3d,
     htmlwidgets::createWidget("scene3d", package = "cv2r",
                               x,  width = width, height = height, sizingPolicy = sizingPolicy)
 }
-#' 
-#' #' @export
-#' print.scene3d <- function(scene3d,
-#'                          width = NULL, height = NULL) {
-#'     
-#'     
-#'     # pass the data and settings using 'x'
-#'     x <- scene3d
-#'     
-#'     sizingPolicy <- htmlwidgets::sizingPolicy(
-#'         viewer.padding = 0,
-#'         viewer.paneHeight = 300,
-#'         viewer.defaultWidth = 300,
-#'         browser.padding	= 0,
-#'         browser.fill = TRUE
-#'     )
-#'     
-#'     # create the widget
-#'     htmlwidgets::createWidget("scene3d", package = "cv2r",
-#'                               x,  width = width, height = height, sizingPolicy = sizingPolicy)
-#' }
-#' 
+
+#' @export
+print.scene3d <- function(scene3d) {
+    cat("scene3d\n")
+    invisible(print(plot(scene3d)))
+}
+
 
 #' @export
 updateScene3d <- function(session, outputId, code, data=list()) {
@@ -125,4 +110,21 @@ scene3dOutput <- function(outputId, width = "100%", height = "400px") {
 renderScene3d <- function(expr, env = parent.frame(), quoted = FALSE) {
     if (!quoted) { expr <- substitute(expr) } # force quoted
     shinyRenderWidget(expr, scene3dOutput, env, quoted = TRUE)
+}
+
+
+as.matrix.mp3base64 <- function(data, ...) {
+    
+    if (is.null(data) || nchar(data) < 10) {
+        l_ret <- numeric(0)
+    } else {
+        l_x <- base64enc::base64decode(what = data)
+        l_wave <- .Call(tuneR:::C_do_read_mp3, l_x)@left
+        
+        i <- 1
+        while(l_wave[[i]] == 0 && i < length(l_wave)) i <- i+1
+        
+        l_ret <- l_wave[i:length(l_wave)]
+    } 
+    return(l_ret)
 }

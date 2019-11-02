@@ -18,7 +18,8 @@ Imports:
     base64enc (>= 0.1-3),
     data.table (>= 1.11.8),
     reticulate (>= 1.10),
-    htmlwidgets (>= 1.3)
+    htmlwidgets (>= 1.3),
+    tuneR (>= 1.3.3),
 Suggests:
     shiny(>= 1.1.0),
     knitr, rmarkdown

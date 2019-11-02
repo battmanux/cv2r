@@ -54,6 +54,7 @@ cv2r_colors <- character(0)
     
     if ( length(find.package("shiny", quiet = T)) == 1 ) {
         shiny::registerInputHandler("base64img", as.numpy.ndarray.base64img, force = TRUE)
+        shiny::registerInputHandler("mp3base64", as.matrix.mp3base64, force = TRUE)
     } else {
         warning("shiny is not installed. Make sure you reload R after shiny installation.")
     }
