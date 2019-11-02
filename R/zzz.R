@@ -7,7 +7,25 @@
 #' @export
 cv2r <- NULL
 base64 <- NULL
+
+#' @export
 np <- NULL
+
+#' @export
+py_to_r <- reticulate::py_to_r
+
+#' @export
+r_to_py <- reticulate::r_to_py
+
+#' @export 
+`.` <- function(...)  {
+    data <- list(...)
+    l_ret <- do.call(
+        reticulate::tuple, 
+        lapply(data, as.integer )
+    )
+    l_ret
+}
 
 cv2r_colors <- character(0)
 

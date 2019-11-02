@@ -100,140 +100,34 @@ inputCv2Cam <- function(inputId,
                         encoding = "image/jpeg", quality = 0.9,
                         audio=F,
                         overlay_svg) {
-  
-  if (select_cam == "default") {
-    cam_mode  <- ""
-  } else if (select_cam == "user" ) {
-    cam_mode  <- ', facingMode:  \'user\'  '
+
+  if ( missing(overlay_svg)) {
+    l_overlay <- shiny::HTML("<svg/>")  
   } else {
-    cam_mode  <- ', facingMode:  \'environment\'  '
+    l_overlay <- includeHTML(overlay_svg)
   }
-  
-  
-    l_stream_audio <- ifelse(audio, "true", "false")
-    if ( audio ) 
-      l_audio_scripts <- list(
-        shiny::tags$script(shiny::HTML(paste0(
-          "var audio_buff_size = ", audio_buff_size, "\n"))),
-        shiny::includeScript(path = system.file('lame.all.js', package = "cv2r", mustWork = T)), 
-        shiny::includeScript(path = system.file('cv2r_audio.js', package = "cv2r", mustWork = T))
-      )
-    else
-      l_audio_scripts <- list()
     
-    l_flip_style <- "-moz-transform: scale(-1, 1); 
--webkit-transform: scale(-1, 1); -o-transform: scale(-1, 1); transform: scale(-1, 1); filter: FlipH;"
-    if ( missing(overlay_svg)) {
-      l_overlay <- shiny::HTML("<svg/>")  
-    } else {
-      l_overlay <- includeHTML(overlay_svg)
-    }
-    
-    shiny::div(
-      shiny::tags$script(shiny::HTML(paste(
-        "var inputId         = '" ,inputId, "';\n"
-      , collapse = "", sep = ""))),
-      l_audio_scripts,
-      shiny::tags$div(
-        shiny::tags$div(id=paste0(inputId, "_overlay"), class="cv2r_input_overlay",
-                        style=paste0("position: absolute; z-index:1; width:", width, "px; height:",height,"px;" ),
-                        l_overlay),
-        shiny::tags$video(id=inputId,
-                          width="100%", height="100%", 
-                          autoplay="", muted="", class="cv2r_input_video",
-                          style=if (!show_live) "display:none;" else if ( flip == T ) l_flip_style else "" )
-        ),
-        shiny::tags$canvas(id="canvas", width=width, height=height, style=if (!show_captured) "display:none;" else ""),
-        shiny::tags$script(shiny::HTML(paste0('
-video = document.getElementById("',inputId,'"); // video is the id of video tag
-canvas = document.getElementById("canvas") ;
-
-function update_overlay(inputId) {
-  v=$("#"+inputId+"_overlay svg");
-  if ( v.length > 0 )  {
-    overlay = v[0];
-  }
-  overlay.setAttribute("width", "',width,'");
-  overlay.setAttribute("height", "',height,'");
+  x <- list(
+    inputId=inputId,
+    width=width,
+    height=height,
+    fps=fps, 
+    show_live=show_live,
+    show_captured = show_captured, 
+    select_cam = select_cam,
+    flip = flip,
+    auto_send_video = auto_send_video, 
+    auto_send_audio = auto_send_audio,
+    audio_buff_size = audio_buff_size,
+    video_encoding = encoding,
+    video_quality = quality,
+    use_audio=audio,
+    overlay_svg=l_overlay
+  )
   
-  if ( overlay.children.length > 0) {
-    $(overlay.children[0].children).each(function(){
-            if ( (""+$(this).attr(\'id\')).startsWith("linkToSvg_") ) {
-            var href = $(this).attr(\'id\').replace("linkToSvg_", "");
-            $(this).bind("click", function() {
-             Shiny.setInputValue(inputId+"_load_svg", href);  
-            })
-      
-            }
-    });
+  htmlwidgets::createWidget("videoInput", package = "cv2r",
+                            x,  width = width, height = height)
   
-  }
-  
-}
-
-update_overlay("',inputId,'");
-
-function snap(message) {
-  if ( message === undefined ) message = {"width":0, "height":0, "left":0, "top":0};
-  if (message.width == 0) message.width = video.videoWidth;
-  if (message.height == 0) message.height = video.videoHeight;
-
-  context = canvas.getContext("2d");
-
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-  var imageData = context.getImageData(message.left, message.top, message.width, message.height);
-
-  canvas.width = message.width;
-  canvas.height = message.height;
-  context.putImageData(imageData, 0, 0);
-
-  imgBase = canvas.toDataURL("',encoding,'", ',quality,');
-  Shiny.onInputChange("',inputId,':base64img", { "data": imgBase.replace(/^data:image.*;base64,/, ""), "type": imgBase.replace(/^data:image.(.*);base64,.*/, "$1"), "height":video.videoHeight, "width":video.videoWidth} );
-}
-
-
-constraint = { video: { width: ',width,', height: ',height,' ',cam_mode,' }', ifelse(audio, ', audio: true }', '}'), '
-
-count = 0;    
-navigator.mediaDevices.enumerateDevices().then(function(mediaDevices) { 
-mediaDevices.forEach(mediaDevice => {
-  if (mediaDevice.kind === "videoinput") {
-      count += 1 
-  } } ) ; 
-} ) 
-  
-if ( count == 1) {
-  constraint["video"]["facingMode"] = "default";
-}
-  
-navigator.mediaDevices.getUserMedia(constraint)
-.then(function(stream) {
-  
-  ',ifelse(!audio, '', '
-  microphone = audioCtx.createMediaStreamSource(stream);
-
-  microphone.connect(scriptNode);
-  scriptNode.connect(audioCtx.destination);
-  '),'
-  video.srcObject = stream;
-
-  video.play();
-})
-.catch(function(err) {
-  console.log("An error occurred! " + err);
-});
-
-Shiny.addCustomMessageHandler("',inputId,'_snap", snap);
-
-auto_send_video = ',ifelse(auto_send_video,"true", "false") ,';
-
-if ( auto_send_video ) {
-  setInterval(snap, ',as.integer(1000/fps),');
-}
-', collapse = "")))
-    )
 }
 
 #' @export
