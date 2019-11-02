@@ -16,7 +16,7 @@ function init(data, el) {
 	renderer.setSize( el.offsetWidth, el.offsetHeight );
 	
 	// controls
-  controls = new THREE.OrbitControls( camera, renderer.domElement );
+    controls = new THREE.OrbitControls( camera, renderer.domElement );
 	
 	controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
 	controls.dampingFactor = 0.25;
