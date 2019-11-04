@@ -195,6 +195,11 @@ as.base64img <- function(mat,
         l_mat <- cv2r$resize(src=l_mat, dsize=reticulate::tuple(render_max_w,render_max_h))
     }
     
+    # zoom pixel art for very small images
+    if ( l_shape[[1]] < 50 || l_shape[[2]] < 50 ) {
+        l_mat <- cv2r$resize(src=l_mat, dsize=.(l_shape[[2]]*100, l_shape[[1]]*100), interpolation = cv2r$INTER_NEAREST)
+    }
+    
     l_b64img <- base64enc::base64encode(
         reticulate::py_to_r(cv2r$imencode(img=l_mat, ext=".png"))[[2]])
     l_ret <- list(
