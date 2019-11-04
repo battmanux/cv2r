@@ -158,15 +158,16 @@ inputCv2CamSnap <- function(session = session, inputId, top=0, left=0, width=0, 
 capture <- function(width=320, height=240, flip = T,
                     encoding = "image/jpeg", 
                     quality = 0.9,
+                    select_cam = "default",
                     overlay_svg) {
   l_output <- NULL
   l_app <- shiny::shinyApp(
     ui = shiny::fluidPage(
       inputCv2Cam("picture", width = width, height, flip = flip,
-                  encoding = encoding, quality = quality, overlay_svg = overlay_svg ), 
+                  encoding = encoding, quality = quality, overlay_svg = overlay_svg, select_cam = select_cam ), 
       shiny::tags$button(
         id="capture", class = "btn btn-primary action-button", 
-        onclick = "snap(); setTimeout(function(){window.close();},500);",  "Capture" ) 
+        onclick = "wg_videoInput['picture'].snap(); setTimeout(function(){window.close();},500);",  "Capture" ) 
     ), 
     server = function(input, output, session) { 
       shiny::observeEvent(

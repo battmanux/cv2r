@@ -29,7 +29,7 @@ HTMLWidgets.widget({
         var w = size.w * scale;
         var h = size.h * scale;
         
-        init(wg, size, x);
+        vi_init(wg, size, x);
       
         el.append(wg.overlay);
         el.append(wg.video);

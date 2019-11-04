@@ -118,7 +118,7 @@ function createSnap(wg) {
         };
     
     if ( message.width === 0 ) message.width = wg.video.videoWidth;
-    if ( message.height === 0 ) message.height = wg.video.videoWidth;
+    if ( message.height === 0 ) message.height = wg.video.videoHeight;
     
     var context = wg.canvas.getContext("2d");
   
@@ -203,7 +203,7 @@ function init_capture(wg, size, x) {
     
 }
     
-function init(wg, size, x) {
+function vi_init(wg, size, x) {
     
     inputId = x.inputId;
     
