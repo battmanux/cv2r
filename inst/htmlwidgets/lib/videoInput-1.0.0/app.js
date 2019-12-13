@@ -54,7 +54,7 @@ function createAudioProcess(wg) {
       // close file
       mp3Tmp = wg.mp3encoder.flush();
       base64buff = _arrayBufferToBase64(mp3Tmp);
-      Shiny.onInputChange(wg.inputId+"_audio:mp3base64", base64buff );
+      Shiny.onInputChange(wg.inputId+"_audio:mp3base64", base64buff, {priority: "event"} );
     }
     else if ( wg.gFrameOn > 0 ) {
       for(var i=0;i<arrayBufferIn.length;i++) {
@@ -63,7 +63,7 @@ function createAudioProcess(wg) {
       
       mp3Tmp = wg.mp3encoder.encodeBuffer(arrayBufferIn); //encode mp3
       base64buff = _arrayBufferToBase64(mp3Tmp);
-      Shiny.onInputChange(wg.inputId+"_audio:mp3base64", base64buff );
+      Shiny.onInputChange(wg.inputId+"_audio:mp3base64", base64buff, {priority: "event"} );
     } else {
       
     }
@@ -138,7 +138,7 @@ function createSnap(wg) {
         "type":   imgBase.replace(/^data:image.(.*);base64,.*/, "$1"), 
         "height": wg.video.videoHeight, 
         "width":  wg.video.videoWidth
-    } );
+    }, {priority: "event"} );
   });
 }
 
@@ -197,7 +197,7 @@ function init_capture(wg, size, x) {
           });
           
           if ( x.auto_send_video ) {
-            setInterval(snap, 1000 / x.fps);
+            setInterval(wg.snap, 1000 / x.fps);
           }
     } );
     
@@ -225,7 +225,7 @@ function vi_init(wg, size, x) {
     }
     
     if ( ! x.show_live ) {
-      l_style = "display=none;" ;
+      l_style = "display:none;" ;
     } else if ( x.flip === true ) {
       l_style = l_flip_style;
     }  else { 

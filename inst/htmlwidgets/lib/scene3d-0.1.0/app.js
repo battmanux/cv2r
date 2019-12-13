@@ -1,44 +1,65 @@
+var THREE, OC, GLTF, OBJ ;
 
 function init(data, el) {
   var camera, scene, renderer;
   var light;
 
-	camera = new THREE.PerspectiveCamera( 70, el.offsetWidth / el.offsetHeight, 0.01, 10 );
-	camera.position.z = 1;
+    var ret = import("./three.module.js" )
+    .then(function(x) {
+        THREE = x;
+        return(import("./GLTFLoader.js"   ));
+    }).then(function(x) {
+        GLTF  = x;
+        return(import("./OBJLoader.js"    ));
+    }).then(function(x) {
+        OBJ   = x;
+        return(import("./OrbitControls.js"));
+    }).then(function(x) {
+        OC    = x;
 
-	scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera( 70, el.offsetWidth / el.offsetHeight, 0.01, 10 );
+        camera.position.z = 1;
+        
+        scene = new THREE.Scene();
+        
+        light = new THREE.HemisphereLight( 0xffffff, 0x444444 );
+        			light.position.set( 0, 200, 0 );
+        			scene.add( light );
+        
+        renderer = new THREE.WebGLRenderer( { antialias: true } );
+        renderer.setSize( el.offsetWidth, el.offsetHeight );
+        
+        el.appendChild( renderer.domElement );
     
-    light = new THREE.HemisphereLight( 0xffffff, 0x444444 );
-				light.position.set( 0, 200, 0 );
-				scene.add( light );
-
-	renderer = new THREE.WebGLRenderer( { antialias: true } );
-	renderer.setSize( el.offsetWidth, el.offsetHeight );
-	
-	// controls
-    controls = new THREE.OrbitControls( camera, renderer.domElement );
-	
-	controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
-	controls.dampingFactor = 0.25;
-	controls.screenSpacePanning = false;
-	controls.minDistance = 0.1;
-	controls.maxDistance = 10;
-	controls.maxPolarAngle = Math.PI / 2;
-
-	el.appendChild( renderer.domElement );
-
-  data.camera   = camera;
-  data.scene    = scene;
-  data.renderer = renderer;
-  data.controls = controls;
-  data.light    = light;
-  data.gltfloader = new THREE.GLTFLoader();
-  data.objloader = new THREE.OBJLoader();
-  
-  if (HTMLWidgets.shinyMode) {
-   linkToShiny(data);
-  }
-  
+        data.camera   = camera;
+        data.scene    = scene;
+        data.renderer = renderer;
+        data.light    = light;
+      
+              
+    	// controls
+        controls = new OC.OrbitControls( camera, renderer.domElement );
+    	
+    	controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+    	controls.dampingFactor = 0.25;
+    	controls.screenSpacePanning = false;
+    	controls.minDistance = 0.1;
+    	controls.maxDistance = 10;
+    	controls.maxPolarAngle = Math.PI / 2;
+        data.controls = controls;
+        
+        animate(data);
+          
+        data.gltfloader = new GLTF.GLTFLoader();
+        data.objloader = new OBJ.OBJLoader();
+       
+    
+      if (HTMLWidgets.shinyMode) {
+       linkToShiny(data);
+      }
+    });  
+    
+    return(ret);
 }
 
 function linkToShiny(wg_data) {
@@ -79,6 +100,8 @@ function loadGltf(data, json) {
     		gltf.scenes; // Array<THREE.Scene>
     		gltf.cameras; // Array<THREE.Camera>
     		gltf.asset; // Object
+    		
+    		data.gltf_file = gltf;
     
 	} );
 }

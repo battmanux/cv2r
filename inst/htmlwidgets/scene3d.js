@@ -12,8 +12,9 @@ HTMLWidgets.widget({
           'gltfloader':null,
           'id':el.id
           };
-    init(wg_data, el);
-    animate(wg_data);
+    
+    var res = init(wg_data, el);
+    
     if ( typeof(scenes) === "undefined" ) {
         scenes = [wg_data];
     } else {
@@ -21,21 +22,26 @@ HTMLWidgets.widget({
     }
     return {
       renderValue: function(x) {
-        wg_data.camera.position.y=1;
-        
-        // remove all but camera
-        while(wg_data.scene.children.length > 1){ 
-            wg_data.scene.remove(wg_data.scene.children[1]); 
-        }
+          
+        res.then(function() {
+          wg_data.camera.position.y=1;
+          
+          // remove all but camera
+          while( wg_data.scene.children.length > 1 ) { 
+              wg_data.scene.remove(wg_data.scene.children[1]); 
+          }
 
-        if ( x.show_ground )
-            addGround(wg_data);
-        if ( x.obj ) {
-          loadObj(wg_data, x.obj);
-        }
-        if ( x.gltf ) {
-          loadGltf(wg_data, x.gltf);
-        }
+          if ( x.show_ground )
+              addGround(wg_data);
+          if ( x.obj ) {
+            loadObj(wg_data, x.obj);
+          }
+          if ( x.gltf ) {
+            loadGltf(wg_data, x.gltf);
+          }  
+          
+        });
+        
       },
       resize: function(width, height) {
           wg_data.renderer.setSize( width, height );

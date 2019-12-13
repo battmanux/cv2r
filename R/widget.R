@@ -63,12 +63,12 @@ scene3d <- function(gltf, obj, show_ground=TRUE) {
         l_ret$obj <- l_file
     }
     
-    class(l_ret) <- 'scene3d'
+    class(l_ret) <- 'scene3ddef'
     l_ret
 }
 
 #' @export
-plot.scene3d <- function(scene3d,
+plot.scene3ddef <- function(scene3d,
                            width = NULL, height = NULL) {
     
     
@@ -89,7 +89,7 @@ plot.scene3d <- function(scene3d,
 }
 
 #' @export
-print.scene3d <- function(scene3d) {
+print.scene3ddef <- function(scene3d) {
     cat("scene3d\n")
     invisible(print(plot(scene3d)))
 }
@@ -121,10 +121,31 @@ as.matrix.mp3base64 <- function(data, ...) {
         l_x <- base64enc::base64decode(what = data)
         l_wave <- .Call(tuneR:::C_do_read_mp3, l_x)@left
         
-        i <- 1
-        while(l_wave[[i]] == 0 && i < length(l_wave)) i <- i+1
-        
-        l_ret <- l_wave[i:length(l_wave)]
+        i <- 735
+        # while(i < length(l_wave)-660 && l_wave[[i]] == 0 ) i <- i+1
+        # 
+        if ( (i+660) > (length(l_wave) - 441) )
+            l_ret <- numeric(0)
+        else
+            l_ret <- l_wave[(i+660):length(l_wave)]
     } 
     return(l_ret)
+}
+
+
+plot.Wave <- function(l_audio) {
+    tuneR::writeWave(l_audio, "file.wav")
+    l_data <- readBin("file.wav", what = "raw", n = 10000000)
+    l_ui <- shiny::bootstrapPage(
+        actionButton(inputId = "done", label = "done"),
+        shiny::tags$audio(controls = "true",
+        shiny::tags$source(
+            src=paste0("data:audio/wav;base64,",
+                       base64enc::base64encode(l_data)), 
+            type="audio/wav") ))
+    shiny::runGadget(l_ui, server = function(input,output){ 
+        observeEvent(input$done, {
+        stopApp(NULL)
+            })
+        } )
 }
