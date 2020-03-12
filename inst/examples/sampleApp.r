@@ -2,19 +2,24 @@ library(shiny)
 library(cv2r)
 library(ggplot2)
 library(bioacoustics)
+library(data.table)
 
 if ( cv2_available() ) {
     ui <- fluidPage(fluidRow(
         actionButton(inputId = "snap", label = "Take"),
-        actionButton(inputId = "snap2", label = "Take2")),
+        actionButton(inputId = "snap2", label = "Take2"),
+        actionButton(inputId = "plot_audio", label = "Audio")),
         fluidRow(
           column(3,inputCv2Cam("capture",
                                auto_send_audio = T, audio = T)),
-          column(3,plotOutput(outputId = "plot")),
           column(3,cv2Output(outputId = "zoom")),
           column(3,cv2Output(outputId = "border"))
     ),
-    fluidRow(column(12, plotOutput(outputId = "fullplot"))))
+    fluidRow(column(12, plotOutput(outputId = "envelop", height = 200))),
+    fluidRow(column(12, plotOutput(outputId = "fullplot_veryhigh", height = 200))),
+    fluidRow(column(12, plotOutput(outputId = "fullplot_high", height = 200))),
+    fluidRow(column(12, plotOutput(outputId = "fullplot_low", height = 200)))
+    )
     
     server <- function(input, output, session) {
         
@@ -24,17 +29,46 @@ if ( cv2_available() ) {
         
             l_data_sel <- input$capture_audio
             
-            output$plot <- renderPlot({
-                ggplot() +
-                    geom_line(aes(x=seq_along(l_data_sel), y = l_data_sel )) + 
-                    theme_minimal()
+            cat(length(full_data), "\n")
+            full_data <<- c(full_data, l_data_sel)
+        })
+        
+        observeEvent(input$plot_audio, {
+            l_data_sel <- full_data
+            full_data <<- numeric(0)
+            
+            .GlobalEnv$l_data_sel <- l_data_sel
+            #plot.Wav(tuneR::Wave(left = l_data_sel, right =  l_data_sel, bit=16, samp.rate=44100))
+            
+            l_plot <- data.table(
+              time = seq_along(l_data_sel)/44100,
+              amplitude = l_data_sel,
+              envelope = abs(l_data_sel)
+              )
+            
+            output$envelop <- renderPlot({
+                ggplot(l_plot[sample.int(nrow(l_plot), 1000),] ) +
+                    geom_line(aes(x=time, y=envelope )) + 
+                    theme_minimal() + stat_smooth(aes(x=time, y=envelope ))
             })
             
-            output$fullplot <- renderPlot({
-                spectro(tuneR::Wave(left = input$capture_audio, bit=16, samp.rate=44100),
-                        flim = c(0, 4000),
-                        FFT_size = 1024  )
-                })
+            output$fullplot_veryhigh <- renderPlot({
+              spectro(tuneR::Wave(left = l_data_sel, bit=16, samp.rate=44100),
+                      flim = c(3000, 10000),
+                      FFT_size = 512  )
+            })
+            
+            output$fullplot_high <- renderPlot({
+              spectro(tuneR::Wave(left = l_data_sel, bit=16, samp.rate=44100),
+                    flim = c(1000, 3000),
+                    FFT_size = 1024  )
+              })
+            
+            output$fullplot_low <- renderPlot({
+              spectro(tuneR::Wave(left = l_data_sel, bit=16, samp.rate=44100),
+                      flim = c(0, 1000),
+                      FFT_size = 2048  )
+            })
             
         })
         
@@ -48,8 +82,8 @@ if ( cv2_available() ) {
         
                 
         output$zoom <- renderCv2({
-            input$capture[5:200,5:200]
-        }, use_svg = T)
+          if ( !is.null(input$capture)) input$capture[5:200,5:200]
+        })
         
         output$border <- renderCv2({
             imshow(mat = cv2r$Canny(input$capture, 10L, 50L) )

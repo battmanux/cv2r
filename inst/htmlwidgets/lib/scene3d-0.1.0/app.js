@@ -1,6 +1,6 @@
-var THREE, OC, GLTF, OBJ ;
+var THREE, OC, GLTF, OBJ, VR ;
 
-function init(data, el) {
+function init(data, el, allow_vr) {
   var camera, scene, renderer;
   var light;
 
@@ -16,8 +16,11 @@ function init(data, el) {
         return(import("./OrbitControls.js"));
     }).then(function(x) {
         OC    = x;
+        return(import("./VRButton.js"));
+    }).then(function(x) {
+        VR    = x;
 
-        camera = new THREE.PerspectiveCamera( 70, el.offsetWidth / el.offsetHeight, 0.01, 10 );
+        camera = new THREE.PerspectiveCamera( 70, el.offsetWidth / el.offsetHeight, 0.01, 50 );
         camera.position.z = 1;
         
         scene = new THREE.Scene();
@@ -29,14 +32,17 @@ function init(data, el) {
         renderer = new THREE.WebGLRenderer( { antialias: true } );
         renderer.setSize( el.offsetWidth, el.offsetHeight );
         
+        if ( allow_vr === true ) {
+            renderer.vr.enabled = true;
+        }
+        
         el.appendChild( renderer.domElement );
-    
+        
         data.camera   = camera;
         data.scene    = scene;
         data.renderer = renderer;
         data.light    = light;
       
-              
     	// controls
         controls = new OC.OrbitControls( camera, renderer.domElement );
     	
@@ -52,11 +58,15 @@ function init(data, el) {
           
         data.gltfloader = new GLTF.GLTFLoader();
         data.objloader = new OBJ.OBJLoader();
-       
-    
+      
+      renderer.setAnimationLoop( function () {
+	    renderer.render( scene, camera );
+      } );
+      
       if (HTMLWidgets.shinyMode) {
        linkToShiny(data);
       }
+      
     });  
     
     return(ret);

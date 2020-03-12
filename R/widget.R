@@ -34,13 +34,16 @@ renderBase64img <- function(expr, env = parent.frame(), quoted = FALSE) {
 }
 
 #' @export
-scene3d <- function(gltf, obj, show_ground=TRUE) {
+scene3d <- function(gltf, obj, show_ground=TRUE, use_vr = FALSE, code = "", data = list() ) {
     
     l_ret <- list(
         width=100,
         height=100,
         texture = "",
-        show_ground=show_ground
+        show_ground=show_ground,
+        use_vr = use_vr,
+        code = code,
+        data = data
     )
     
     if (! missing(gltf) ) {

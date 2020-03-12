@@ -13,17 +13,27 @@ HTMLWidgets.widget({
           'id':el.id
           };
     
-    var res = init(wg_data, el);
+    var res = init(wg_data, el, true);
     
     if ( typeof(scenes) === "undefined" ) {
         scenes = [wg_data];
     } else {
         scenes.push(wg_data); 
     }
+    
     return {
       renderValue: function(x) {
           
         res.then(function() {
+          if ( x.use_vr ) {
+             if ( $("#"+wg_data.id).children("button").length === 0 ) {
+                $("#"+wg_data.id).appendChild( VR.VRButton.createButton( renderer ) );    
+             }
+             $("#"+wg_data.id).children("button").show();
+          } else {
+              $("#"+wg_data.id).children("button").hide();
+          }
+                      
           wg_data.camera.position.y=1;
           
           // remove all but camera
@@ -39,7 +49,11 @@ HTMLWidgets.widget({
           if ( x.gltf ) {
             loadGltf(wg_data, x.gltf);
           }  
-          
+
+          var scene = wg_data.scene;
+          var data = x.data;
+          eval(x.code);
+
         });
         
       },
