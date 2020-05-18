@@ -337,6 +337,13 @@ as.data.table.numpy.ndarray <- function(x) {
     }
     setDT(l_ret)
     
+    # If there is only one channel, we are done
+    if ( length(x$shape) == 2 ) {
+        attr(x = l_ret, which = "colorspace") <- "GREY"
+        setkeyv(x = l_ret, cols = c("x","y"))
+        return(l_ret)
+    }
+    
     # Add alpha in colorspace if missing
     if ( nchar(l_orig_colorspace) == 3 && reticulate::py_to_r(x$shape[2]) == 4 ) 
       attr(x = x, which = "colorspace") <- paste0(l_orig_colorspace, "A")
