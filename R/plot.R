@@ -104,9 +104,10 @@ imshow <- function(winname="default", mat,
 #'@export
 as.numpy.ndarray.base64img <- function(base64img, ...) {
 
-    if (is.null(names(base64img)) ||  ! "data" %in% names(base64img))
+    if (is.null(names(base64img)) ||  !"data" %in% names(base64img))
         return(NULL)
-    
+  
+    np <- reticulate::import("numpy", convert = F)
     l_array <- base64enc::base64decode(base64img$data)
     l_array <- np$frombuffer(l_array, dtype = np$uint8)  
     l_mat <- cv2r$imdecode(l_array, -1L)
