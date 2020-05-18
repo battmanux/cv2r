@@ -26,12 +26,16 @@ HTMLWidgets.widget({
           
         res.then(function() {
           if ( x.use_vr ) {
-             if ( $("#"+wg_data.id).children("button").length === 0 ) {
-                $("#"+wg_data.id).appendChild( VR.VRButton.createButton( renderer ) );    
+             if ( document.getElementById(wg_data.id).getElementsByTagName("button").length === 0 ) {
+                document.getElementById(wg_data.id).appendChild(
+                    VR.VRButton.createButton( wg_data.renderer )
+                    );    
              }
-             $("#"+wg_data.id).children("button").show();
+             document.getElementById(wg_data.id).getElementsByTagName("button")[0].hidden = false;
           } else {
-              $("#"+wg_data.id).children("button").hide();
+              if ( document.getElementById(wg_data.id).getElementsByTagName("button").length > 0 ) {
+                document.getElementById(wg_data.id).getElementsByTagName("button")[0].hidden = true;
+              }
           }
                       
           wg_data.camera.position.y=1;
