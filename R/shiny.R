@@ -195,7 +195,7 @@ videoInputPlay <- function(session, inputId, audio) {
   session$sendCustomMessage(
     paste0(inputId,"_play"),
     list(
-      buffer=base64enc::base64encode( 
+      buffer = base64enc::base64encode( 
         writeBin(
           as.integer(audio),
           raw(0),
