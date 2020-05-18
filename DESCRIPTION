@@ -1,6 +1,6 @@
 Package: cv2r
 Title: Use OpenCV in RStudio 
-Version: 0.7.6
+Version: 0.7.8
 Author: Emmanuel BATT [aut, cre]
 Maintainer: Emmanuel BATT <emmanuel.batt.cran@battfamily.fr>
 Authors@R: person("Emmanuel", "BATT", email = "emmanuel.batt.cran@battfamily.fr", role = c("aut", "cre"))
