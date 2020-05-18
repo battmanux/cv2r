@@ -14,7 +14,7 @@ HTMLWidgets.widget({
         var w = size.w * scale;
         var h = size.h * scale;
         
-        txt = '<img style="max-height:100%; max-width:100%;" width="'+w+'px" height="'+h+'px" src="data:image/' 
+        txt = '<img style="max-height:100%; max-width:100%;image-rendering:optimize-contrast;image-rendering:crisp-edges;image-rendering:pixelated;" width="'+w+'px" height="'+h+'px" src="data:image/' 
                         + x.type + ';base64,' 
                         + x.data + '" />' ;
         el.innerHTML = txt;
