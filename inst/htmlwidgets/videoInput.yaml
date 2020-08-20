@@ -1,7 +1,7 @@
 dependencies:
   - name: videoInput
-    version: 1.0.0
-    src: htmlwidgets/lib/videoInput-1.0.0
+    version: 1.0.1
+    src: htmlwidgets/lib/videoInput-1.0.1
     script: 
         - app.js
         - lame.all.js
