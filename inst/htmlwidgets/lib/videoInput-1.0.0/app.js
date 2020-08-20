@@ -171,6 +171,10 @@ function init_capture(wg, size, x) {
               console.log("No video available!");
           }
             
+          wg.video.setAttribute('autoplay', '');
+          wg.video.setAttribute('muted', '');
+          wg.video.setAttribute('playsinline', '');
+          
           navigator.mediaDevices.getUserMedia(constraint).then(function(stream) {
               
             console.log("found video for "+wg.inputId);
