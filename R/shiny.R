@@ -43,7 +43,9 @@ renderCv2 <- function (expr, mat, env = parent.frame(), quoted = FALSE, use_svg=
 
   
   if (missing(expr) && !missing(mat)) {
-    lOutput <- htmlwidgets::shinyRenderWidget(imshow(mat = mat, use_svg = use_svg), lOutput, env, quoted = FALSE)
+    l_env <- new.env(parent = env)
+    assign("mat", mat, l_env)
+    lOutput <- htmlwidgets::shinyRenderWidget(imshow(mat = mat, use_svg = F), base64imgOutput, l_env, quoted = FALSE)
   } else {
     
     if (!quoted) {

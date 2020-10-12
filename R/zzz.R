@@ -33,10 +33,11 @@ cv2r_colors <- character(0)
     if ( ! file.exists("/usr/bin/python3"))
         stop("cv2r is tested with python3 only!")
     
-    Sys.setenv(RETICULATE_PYTHON = "/usr/bin/python3")
     l_cfg <- reticulate::py_discover_config()
-    if ( ! grepl(pattern = "python3", l_cfg[1]) ) {
-        stop("you must use pyhton3! restart R and reload cv2r")
+    if ( ! any(grepl(pattern = "python3", l_cfg)) ) {
+    
+	    cat('add this line before loading cv2r: Sys.setenv(RETICULATE_PYTHON = "/usr/bin/python3")')
+	    stop("you must use pyhton3! restart R and reload cv2r")
     }
     
     # load cv2 without convertion and assign it to the package env and GlobalEnv
