@@ -326,7 +326,7 @@ hist.numpy.ndarray <- function(x, ...) { hist(reticulate::py_to_r(x, ...)) }
 #' @export
 as.data.table.numpy.ndarray <- function(x) { 
     l_orig_colorspace <- cvtColor(x)
-    l_ret <- data.table::melt(reticulate::py_to_r(x)) 
+    l_ret <- data.table::as.data.table(reticulate::py_to_r(x)) 
     if ( length(names(l_ret)) == 3) {
       l_orig_colorspace <- "V"
       names(l_ret) <- c("x", "y", "value")
